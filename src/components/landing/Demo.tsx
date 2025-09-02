@@ -1,9 +1,28 @@
+// src/components/landing/Demo.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
+import { motion ,Variants} from "framer-motion";
+import { useInView } from "react-intersection-observer";
+
+const cardVariants: Variants = {
+  hidden: { scale: 0.95, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: {
+      duration: 0.7,
+      ease: "easeOut",
+    },
+  },
+};
 
 export default function Demo() {
   const router = useRouter();
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
 
   const handleGetStarted = () => {
     router.push("/register");
@@ -12,7 +31,12 @@ export default function Demo() {
   return (
     <section id="demo" className="py-20 bg-muted">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <motion.div
+          className="text-center mb-16"
+          initial={{ y: 20, opacity: 0 }}
+          animate={inView ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             See It In Action
           </h2>
@@ -20,9 +44,15 @@ export default function Demo() {
             Preview of our professional prescription template that you can
             customize.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="bg-background p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
+        <motion.div
+          ref={ref}
+          variants={cardVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="bg-background p-8 rounded-lg shadow-lg max-w-4xl mx-auto"
+        >
           <div className="flex justify-between items-start mb-8">
             <div>
               <h3 className="text-2xl font-bold text-foreground">
@@ -159,9 +189,14 @@ export default function Demo() {
               <p className="text-muted-foreground">Dr. Sarah Johnson, MD</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="text-center mt-12">
+        <motion.div
+          className="text-center mt-12"
+          initial={{ y: 20, opacity: 0 }}
+          animate={inView ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+        >
           <p className="text-lg text-muted-foreground mb-6">
             Ready to create professional prescriptions like this?
           </p>
@@ -171,7 +206,7 @@ export default function Demo() {
           >
             Get Started Today
           </button>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

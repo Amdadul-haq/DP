@@ -2,6 +2,32 @@
 "use client";
 
 import { useState } from "react";
+import { motion, Variants } from "framer-motion";
+import { useInView } from "react-intersection-observer";
+
+// Animation variants
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut",
+    },
+  },
+};
 
 interface Plan {
   name: string;
@@ -16,6 +42,20 @@ interface Plan {
 
 const plans: Record<string, Plan[]> = {
   monthly: [
+    {
+      name: "Free",
+      price: "$0",
+      period: "month",
+      description: "For students and new practitioners getting started",
+      features: [
+        "Up to 5 prescriptions per month",
+        "Basic medicine database access",
+        "Patient management (up to 10 patients)",
+        "PDF download",
+        "Community support",
+      ],
+      cta: "Get Started",
+    },
     {
       name: "Starter",
       price: "$19",
@@ -45,22 +85,22 @@ const plans: Record<string, Plan[]> = {
       cta: "Get Started",
       highlighted: true,
     },
-    {
-      name: "Enterprise",
-      price: "$99",
-      period: "month",
-      description: "For clinics and hospitals with multiple doctors",
-      features: [
-        "Multiple doctor accounts",
-        "Clinic branding",
-        "Advanced analytics",
-        "API access",
-        "Dedicated account manager",
-      ],
-      cta: "Contact Sales",
-    },
   ],
   yearly: [
+    {
+      name: "Free",
+      price: "$0",
+      period: "year",
+      description: "For students and new practitioners getting started",
+      features: [
+        "Up to 5 prescriptions per month",
+        "Basic medicine database access",
+        "Patient management (up to 10 patients)",
+        "PDF download",
+        "Community support",
+      ],
+      cta: "Get Started",
+    },
     {
       name: "Starter",
       price: "$190",
@@ -92,21 +132,6 @@ const plans: Record<string, Plan[]> = {
       highlighted: true,
       saving: "Save 16%",
     },
-    {
-      name: "Enterprise",
-      price: "$990",
-      period: "year",
-      description: "For clinics and hospitals with multiple doctors",
-      features: [
-        "Multiple doctor accounts",
-        "Clinic branding",
-        "Advanced analytics",
-        "API access",
-        "Dedicated account manager",
-      ],
-      cta: "Contact Sales",
-      saving: "Save 16%",
-    },
   ],
 };
 
@@ -114,11 +139,27 @@ export default function Pricing() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly"
   );
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(
+    "Professional"
+  );
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
+  const handlePlanSelect = (planName: string) => {
+    setSelectedPlan(planName);
+  };
 
   return (
     <section id="pricing" className="py-20 bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <motion.div
+          className="text-center mb-16"
+          initial={{ y: 20, opacity: 0 }}
+          animate={inView ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Simple, Transparent Pricing
           </h2>
@@ -152,73 +193,91 @@ export default function Pricing() {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans[billingCycle].map((plan, index) => (
-            <div
-              key={index}
-              className={`rounded-lg p-8 ${
-                plan.highlighted
-                  ? "border-2 border-primary shadow-xl"
-                  : "border border-border"
-              }`}
-            >
-              {plan.highlighted && (
-                <div className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4">
-                  Most Popular
-                </div>
-              )}
-              {plan.saving && (
-                <div className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full mb-4 ml-2">
-                  {plan.saving}
-                </div>
-              )}
+        <motion.div
+          ref={ref}
+          variants={containerVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
+          {plans[billingCycle].map((plan, index) => {
+            const isSelected = selectedPlan === plan.name;
+            const isHighlighted = plan.highlighted && isSelected;
 
-              <h3 className="text-2xl font-bold text-foreground mb-2">
-                {plan.name}
-              </h3>
-              <div className="flex items-baseline mb-4">
-                <span className="text-4xl font-bold text-foreground">
-                  {plan.price}
-                </span>
-                <span className="text-muted-foreground ml-1">
-                  /{plan.period}
-                </span>
-              </div>
-              <p className="text-muted-foreground mb-6">{plan.description}</p>
-
-              <ul className="mb-8 space-y-3">
-                {plan.features.map((feature, featureIndex) => (
-                  <li key={featureIndex} className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-green-500 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <span className="text-muted-foreground">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                className={`w-full py-3 px-4 rounded-md font-medium ${
-                  plan.highlighted
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted text-foreground hover:bg-muted/80"
-                } transition-colors`}
+            return (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className={`rounded-lg p-8 cursor-pointer transition-all ${
+                  isSelected
+                    ? "border-2 border-primary shadow-xl scale-105"
+                    : "border border-border hover:border-primary/50 hover:shadow-md"
+                }`}
+                onClick={() => handlePlanSelect(plan.name)}
               >
-                {plan.cta}
-              </button>
-            </div>
-          ))}
-        </div>
+                {isHighlighted && (
+                  <div className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4">
+                    Most Popular
+                  </div>
+                )}
+                {isSelected && !isHighlighted && (
+                  <div className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4">
+                    Selected
+                  </div>
+                )}
+                {plan.saving && (
+                  <div className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full mb-4 ml-2">
+                    {plan.saving}
+                  </div>
+                )}
+
+                <h3 className="text-2xl font-bold text-foreground mb-2">
+                  {plan.name}
+                </h3>
+                <div className="flex items-baseline mb-4">
+                  <span className="text-4xl font-bold text-foreground">
+                    {plan.price}
+                  </span>
+                  <span className="text-muted-foreground ml-1">
+                    /{plan.period}
+                  </span>
+                </div>
+                <p className="text-muted-foreground mb-6">{plan.description}</p>
+
+                <ul className="mb-8 space-y-3">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-center">
+                      <svg
+                        className="h-5 w-5 text-green-500 mr-2"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  className={`w-full py-3 px-4 rounded-md font-medium ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-foreground hover:bg-muted/80"
+                  } transition-colors`}
+                >
+                  {plan.cta}
+                </button>
+              </motion.div>
+            );
+          })}
+        </motion.div>
       </div>
     </section>
   );

@@ -1,33 +1,99 @@
 // src/components/landing/Hero.tsx
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { motion, Variants, easeOut } from "framer-motion";
+import { useInView } from "react-intersection-observer";
+
+// Animation variants
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2,
+      delayChildren: 0.3,
+      
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut",
+    },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { scale: 0.95, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: {
+      duration: 0.7,
+      ease: "easeOut",
+    },
+  },
+};
 
 export default function Hero() {
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
   return (
     <section className="relative bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col items-center text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6">
+        <motion.div
+          className="flex flex-col items-center text-center"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.h1
+            variants={itemVariants}
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6"
+          >
             Modern Digital Prescription Platform for Doctors
-          </h1>
-          <p className="text-xl text-muted-foreground mb-10 max-w-3xl">
+          </motion.h1>
+          <motion.p
+            variants={itemVariants}
+            className="text-xl text-muted-foreground mb-10 max-w-3xl"
+          >
             Create professional prescriptions, manage patients, and save time
             with our easy-to-use digital tool.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4">
+          </motion.p>
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-col sm:flex-row gap-4"
+          >
             <Button size="lg" asChild>
               <Link href="/register">Get Started</Link>
             </Button>
             <Button variant="outline" size="lg" asChild>
               <Link href="#demo">View Demo</Link>
             </Button>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* Hero image placeholder */}
-        <div className="mt-16 flex justify-center">
-          <Card className="w-full max-w-4xl">
+        <motion.div
+          ref={ref}
+          variants={cardVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="mt-16 flex justify-center"
+        >
+          <Card className="w-full max-w-4xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
             <CardContent className="p-8">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -132,7 +198,7 @@ export default function Hero() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

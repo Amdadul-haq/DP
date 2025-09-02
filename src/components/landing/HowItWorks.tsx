@@ -1,4 +1,33 @@
 // src/components/landing/HowItWorks.tsx
+"use client";
+
+import { motion, Variants } from "framer-motion";
+import { useInView } from "react-intersection-observer";
+
+// Animation variants
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2,
+      delayChildren: 0.3,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut",
+    },
+  },
+};
+
 const steps = [
   {
     step: 1,
@@ -21,10 +50,20 @@ const steps = [
 ];
 
 export default function HowItWorks() {
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
   return (
     <section className="py-20 bg-muted">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <motion.div
+          className="text-center mb-16"
+          initial={{ y: 20, opacity: 0 }}
+          animate={inView ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+        >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             How It Works
           </h2>
@@ -32,12 +71,19 @@ export default function HowItWorks() {
             Simple steps to transform your prescription process with our digital
             platform.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+        <motion.div
+          ref={ref}
+          variants={containerVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="flex flex-col md:flex-row justify-between items-center gap-8"
+        >
           {steps.map((item, index) => (
-            <div
+            <motion.div
               key={index}
+              variants={itemVariants}
               className="flex flex-col items-center text-center max-w-xs mx-auto"
             >
               <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-bold mb-4">
@@ -47,9 +93,9 @@ export default function HowItWorks() {
                 {item.title}
               </h3>
               <p className="text-muted-foreground">{item.description}</p>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

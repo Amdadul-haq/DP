@@ -1,4 +1,4 @@
-// src/app/login/page.tsx
+// src/app/(marketing)/login/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -29,6 +30,11 @@ export default function Login() {
     // Simulate login process
     setTimeout(() => {
       setIsLoading(false);
+      toast.success("Login successful!", {
+        description: "Welcome back to your dashboard.",
+        className: "bg-background text-foreground border-border",
+        descriptionClassName: "text-muted-foreground",
+      });
       router.push("/dashboard");
     }, 1500);
   };

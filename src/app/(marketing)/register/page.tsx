@@ -1,4 +1,4 @@
-// src/app/register/page.tsx
+// src/app/(marketing)/register/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -51,12 +52,37 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match", {
+        description: "Please make sure your passwords match.",
+        className: "bg-background text-foreground border-border",
+        descriptionClassName: "text-muted-foreground",
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error("Password too short", {
+        description: "Password must be at least 6 characters long.",
+        className: "bg-background text-foreground border-border",
+        descriptionClassName: "text-muted-foreground",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     // Simulate registration process
     setTimeout(() => {
       setIsLoading(false);
-       router.push("/dashboard");
+      toast.success("Account created successfully!", {
+        description: "Welcome to Digital Prescription!",
+        className: "bg-background text-foreground border-border",
+        descriptionClassName: "text-muted-foreground",
+      });
+      router.push("/dashboard");
     }, 1500);
   };
 

@@ -1,20 +1,59 @@
 // src/components/landing/Footer.tsx
+"use client";
+
 import Link from "next/link";
+import { motion, Variants } from "framer-motion";
+import { useInView } from "react-intersection-observer";
+
+// Animation variants
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut",
+    },
+  },
+};
 
 export default function Footer() {
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
   return (
     <footer className="bg-foreground text-background py-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
+        <motion.div
+          ref={ref}
+          variants={containerVariants}
+          initial="hidden"
+          animate={inView ? "visible" : "hidden"}
+          className="grid grid-cols-1 md:grid-cols-4 gap-8"
+        >
+          <motion.div variants={itemVariants}>
             <h3 className="text-xl font-bold mb-4">Digital Prescription</h3>
             <p className="text-muted-foreground">
               Modern digital prescription platform designed exclusively for
               healthcare professionals.
             </p>
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={itemVariants}>
             <h4 className="font-semibold mb-4">Product</h4>
             <ul className="space-y-2">
               <li>
@@ -42,9 +81,9 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={itemVariants}>
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
               <li>
@@ -72,9 +111,9 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
+          </motion.div>
 
-          <div>
+          <motion.div variants={itemVariants}>
             <h4 className="font-semibold mb-4">Legal</h4>
             <ul className="space-y-2">
               <li>
@@ -102,10 +141,15 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        <div className="border-t border-muted-foreground mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+        <motion.div
+          className="border-t border-muted-foreground mt-8 pt-8 flex flex-col md:flex-row justify-between items-center"
+          initial={{ y: 20, opacity: 0 }}
+          animate={inView ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
+          transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+        >
           <p className="text-muted-foreground">
             © {new Date().getFullYear()} Digital Prescription. All rights
             reserved.
@@ -162,7 +206,7 @@ export default function Footer() {
               </svg>
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
     </footer>
   );
