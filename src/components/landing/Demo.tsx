@@ -1,5 +1,14 @@
-// src/components/landing/Demo.tsx
+"use client";
+
+import { useRouter } from "next/navigation";
+
 export default function Demo() {
+  const router = useRouter();
+
+  const handleGetStarted = () => {
+    router.push("/register");
+  };
+
   return (
     <section id="demo" className="py-20 bg-muted">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -156,7 +165,10 @@ export default function Demo() {
           <p className="text-lg text-muted-foreground mb-6">
             Ready to create professional prescriptions like this?
           </p>
-          <button className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 transition-colors">
+          <button
+            onClick={handleGetStarted}
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 transition-colors"
+          >
             Get Started Today
           </button>
         </div>
