@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 import {
   Card,
   CardContent,
@@ -8,14 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  FileText,
-  CreditCard,
-  ArrowUpRight,
-  Calendar,
-  Activity,
-} from "lucide-react";
+import { Users, FileText, CreditCard, Calendar } from "lucide-react";
 import Link from "next/link";
 
 export default function Dashboard() {
@@ -55,22 +47,24 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
+    <div className="w-full">
+      {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
         <h2 className="text-3xl font-bold text-foreground">
           Dashboard Overview
         </h2>
         <p className="text-muted-foreground">
-          Welcome back, Dr. Smith. Here&apos;s what&apos;s happening with your practice
-          today.
+          Welcome back, Dr. Smith. Here&apos;s what&apos;s happening with your
+          practice today.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+      {/* Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index}>
+            <Card key={index} className="w-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                   {stat.label}
@@ -89,8 +83,10 @@ export default function Dashboard() {
         })}
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <Card>
+      {/* Main Content Grid */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Recent Prescriptions */}
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Recent Prescriptions</CardTitle>
             <CardDescription>Your most recent prescriptions</CardDescription>
@@ -100,11 +96,13 @@ export default function Dashboard() {
               {recentPrescriptions.map((prescription) => (
                 <div
                   key={prescription.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="space-y-1">
-                    <p className="font-medium">{prescription.patientName}</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <p className="font-medium truncate">
+                      {prescription.patientName}
+                    </p>
+                    <p className="text-sm text-muted-foreground truncate">
                       {prescription.diagnosis}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -113,56 +111,63 @@ export default function Dashboard() {
                   </div>
                   <Badge
                     variant="outline"
-                    className="bg-green-50 text-green-700 border-green-200"
+                    className="bg-green-50 text-green-700 border-green-200 shrink-0 ml-4"
                   >
                     {prescription.status}
                   </Badge>
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="w-full mt-4" asChild>
-              <Link href="/dashboard/prescriptions">View All</Link>
+            <Button variant="outline" className="w-full mt-6" asChild>
+              <Link href="/dashboard/prescriptions">
+                View All Prescriptions
+              </Link>
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Upcoming Appointments */}
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Upcoming Appointments</CardTitle>
             <CardDescription>Your schedule for today</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 rounded-full">
+              <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="p-2 bg-blue-100 rounded-full shrink-0">
                     <Calendar className="h-4 w-4 text-blue-600" />
                   </div>
-                  <div>
-                    <p className="font-medium">Sarah Johnson</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">Sarah Johnson</p>
+                    <p className="text-sm text-muted-foreground truncate">
                       10:00 AM - Follow-up
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline">30 min</Badge>
+                <Badge variant="outline" className="shrink-0 ml-4">
+                  30 min
+                </Badge>
               </div>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 rounded-full">
+              <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="p-2 bg-green-100 rounded-full shrink-0">
                     <Calendar className="h-4 w-4 text-green-600" />
                   </div>
-                  <div>
-                    <p className="font-medium">Michael Brown</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">Michael Brown</p>
+                    <p className="text-sm text-muted-foreground truncate">
                       2:30 PM - New patient
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline">45 min</Badge>
+                <Badge variant="outline" className="shrink-0 ml-4">
+                  45 min
+                </Badge>
               </div>
             </div>
-            <Button variant="outline" className="w-full mt-4">
+            <Button variant="outline" className="w-full mt-6">
               Schedule New Appointment
             </Button>
           </CardContent>

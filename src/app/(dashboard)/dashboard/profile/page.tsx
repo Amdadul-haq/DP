@@ -1,4 +1,4 @@
-// src/app/dashboard/profile/page.tsx
+// src/app/(dashboard)/dashboard/profile/page.tsx
 import {
   Card,
   CardContent,

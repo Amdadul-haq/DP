@@ -56,7 +56,7 @@ export default function Register() {
     // Simulate registration process
     setTimeout(() => {
       setIsLoading(false);
-      router.push("/dashboard");
+       router.push("/dashboard");
     }, 1500);
   };
 
