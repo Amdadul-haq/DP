@@ -58,7 +58,7 @@ const plans: Record<string, Plan[]> = {
     },
     {
       name: "Starter",
-      price: "$19",
+      price: "$5",
       period: "month",
       description: "For individual practitioners with basic needs",
       features: [
@@ -72,7 +72,7 @@ const plans: Record<string, Plan[]> = {
     },
     {
       name: "Professional",
-      price: "$49",
+      price: "$10",
       period: "month",
       description: "For established practices with higher volume",
       features: [
@@ -103,7 +103,7 @@ const plans: Record<string, Plan[]> = {
     },
     {
       name: "Starter",
-      price: "$190",
+      price: "$60",
       period: "year",
       description: "For individual practitioners with basic needs",
       features: [
@@ -118,7 +118,7 @@ const plans: Record<string, Plan[]> = {
     },
     {
       name: "Professional",
-      price: "$490",
+      price: "$115",
       period: "year",
       description: "For established practices with higher volume",
       features: [
