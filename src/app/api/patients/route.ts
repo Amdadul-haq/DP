@@ -1,3 +1,4 @@
+// app/api/patients/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUserFromSession } from '@/lib/auth';
@@ -16,6 +17,8 @@ interface Patient {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('GET /api/patients called with search params:', request.nextUrl.searchParams.toString()); // Debug log
+    
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -48,11 +51,10 @@ export async function GET(request: NextRequest) {
       queryParams.push(`%${search}%`);
     }
 
-    const limitParamIndex = queryParams.length + 1;
-    const offsetParamIndex = queryParams.length + 2;
-    
-    query += ` ORDER BY created_at DESC LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}`;
+    query += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
     queryParams.push(limit, offset);
+
+    console.log('Query params:', queryParams); // Debug log
 
     const [patientsResult, countResult] = await Promise.all([
       pool.query(query, queryParams),
@@ -102,6 +104,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Handle empty last_visit_date by setting it to null
+    const lastVisitDate = patientData.last_visit_date?.trim() === '' ? null : patientData.last_visit_date;
+
     const result = await pool.query(
       `INSERT INTO patients 
        (doctor_id, full_name, gender, dob, mobile, email, blood_group, address, last_visit_date)
@@ -116,7 +121,7 @@ export async function POST(request: NextRequest) {
         patientData.email,
         patientData.blood_group,
         patientData.address,
-        patientData.last_visit_date
+        lastVisitDate
       ]
     );
 
