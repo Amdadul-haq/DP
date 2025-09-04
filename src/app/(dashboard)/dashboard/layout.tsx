@@ -26,12 +26,14 @@ import {
   User,
   CreditCard,
   LogOut,
+  BriefcaseMedical,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Patients", href: "/dashboard/patients", icon: Users },
   { name: "Prescriptions", href: "/dashboard/prescriptions", icon: FileText },
+  { name: "Medicine", href: "/dashboard/medicine", icon: BriefcaseMedical },
   { name: "Profile", href: "/dashboard/profile", icon: User },
   { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
 ];
