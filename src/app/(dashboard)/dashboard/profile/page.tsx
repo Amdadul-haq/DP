@@ -1,25 +1,16 @@
+"use client";
 // src/app/(dashboard)/dashboard/profile/page.tsx
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Upload, Save } from "lucide-react";
+import { Save } from "lucide-react";
+import { useUser } from "@/context/UserContext";
 
 export default function Profile() {
+  const { user, subscription } = useUser();
+
   return (
     <div>
       <div className="flex flex-col gap-4 mb-6">
@@ -28,7 +19,6 @@ export default function Profile() {
           Manage your account settings and update your professional information
         </p>
       </div>
-
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -41,11 +31,11 @@ export default function Profile() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" defaultValue="John" />
+                <Input id="firstName" value={user?.firstName || ""} readOnly />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" defaultValue="Smith" />
+                <Input id="lastName" value={user?.lastName || ""} readOnly />
               </div>
             </div>
             <div className="space-y-2">
@@ -53,16 +43,12 @@ export default function Profile() {
               <Input
                 id="email"
                 type="email"
-                defaultValue="dr.smith@example.com"
+                defaultValue={user?.email || ""}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" type="tel" defaultValue="+1 (555) 123-4567" />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="bmdc">BMDC Registration Number</Label>
-              <Input id="bmdc" defaultValue="12345" />
+              <Input id="bmdc" defaultValue={user?.bmdcReg || ""} />
             </div>
             <Button>
               <Save className="h-4 w-4 mr-2" />
@@ -70,7 +56,6 @@ export default function Profile() {
             </Button>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Professional Information</CardTitle>
@@ -81,53 +66,26 @@ export default function Profile() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="specialty">Specialty</Label>
-              <Select defaultValue="internal-medicine">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select specialty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="internal-medicine">
-                    Internal Medicine
-                  </SelectItem>
-                  <SelectItem value="cardiology">Cardiology</SelectItem>
-                  <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                  <SelectItem value="surgery">Surgery</SelectItem>
-                  <SelectItem value="orthopedics">Orthopedics</SelectItem>
-                  <SelectItem value="neurology">Neurology</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input id="specialty" defaultValue={user?.specialty || ""} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="designation">Designation</Label>
-              <Input id="designation" defaultValue="Senior Consultant" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="chamber">Chamber/Hospital Name</Label>
-              <Input id="chamber" defaultValue="City Medical Center" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Textarea
-                id="address"
-                defaultValue="123 Medical Center Drive, Healthcare City"
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Signature</Label>
-              <div className="flex items-center gap-4">
-                <div className="h-20 w-80 border border-dashed rounded-md flex items-center justify-center">
-                  <span className="text-muted-foreground">
-                    Your signature will appear here
-                  </span>
+            {/* You can add more fields here as needed */}
+            {subscription && (
+              <div className="space-y-2">
+                <Label>Subscription Plan</Label>
+                <div className="p-3 border rounded-lg">
+                  <div className="font-semibold">{subscription.plan_name}</div>
+                  <div className="text-sm text-muted-foreground">Status: {subscription.status}</div>
+                  <div className="text-sm text-muted-foreground">Billing Cycle: {subscription.billing_cycle}</div>
+                  <div className="text-sm text-muted-foreground">Next Billing: {subscription.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString() : "-"}</div>
+                  <div className="text-sm text-muted-foreground">Features:</div>
+                  <ul className="list-disc ml-5">
+                    {subscription.features?.map((feature, idx) => (
+                      <li key={idx}>{feature}</li>
+                    ))}
+                  </ul>
                 </div>
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload
-                </Button>
               </div>
-            </div>
+            )}
             <Button>
               <Save className="h-4 w-4 mr-2" />
               Save Changes

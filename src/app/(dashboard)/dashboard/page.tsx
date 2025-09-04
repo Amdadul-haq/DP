@@ -1,3 +1,4 @@
+"use client";
 import {
   Card,
   CardContent,
@@ -9,8 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, FileText, CreditCard, Calendar } from "lucide-react";
 import Link from "next/link";
+import { useUser } from "@/context/UserContext";
+
 
 export default function Dashboard() {
+  const { user } = useUser();
   const stats = [
     { label: "Total Patients", value: "124", icon: Users, change: "+12%" },
     {
@@ -54,8 +58,7 @@ export default function Dashboard() {
           Dashboard Overview
         </h2>
         <p className="text-muted-foreground">
-          Welcome back, Dr. Smith. Here&apos;s what&apos;s happening with your
-          practice today.
+          {`Welcome back, Dr. ${user?.firstName || ""} ${user?.lastName || ""}. Here's what's happening with your practice today.`}
         </p>
       </div>
 
