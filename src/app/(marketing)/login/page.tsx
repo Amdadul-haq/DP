@@ -27,16 +27,52 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Login successful!", {
-        description: "Welcome back to your dashboard.",
-        className: "bg-background text-foreground border-border",
-        descriptionClassName: "text-muted-foreground",
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       });
-      router.push("/dashboard");
-    }, 1500);
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token and user data
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        toast.success("Login successful!", {
+          description: "Welcome back to your dashboard.",
+        });
+
+        // Check subscription status
+        const subscriptionResponse = await fetch("/api/auth/subscription", {
+          headers: {
+            Authorization: `Bearer ${data.token}`,
+          },
+        });
+
+        const subscriptionData = await subscriptionResponse.json();
+
+        if (subscriptionData.hasActiveSubscription) {
+          router.push("/dashboard");
+        } else {
+          router.push("/pricing");
+        }
+      } else {
+        toast.error("Login failed", {
+          description: data.error || "Please check your credentials.",
+        });
+      }
+    } catch (error) {
+      toast.error("Login error", {
+        description: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

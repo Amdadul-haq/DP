@@ -57,8 +57,6 @@ export default function Register() {
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match", {
         description: "Please make sure your passwords match.",
-        className: "bg-background text-foreground border-border",
-        descriptionClassName: "text-muted-foreground",
       });
       return;
     }
@@ -66,24 +64,51 @@ export default function Register() {
     if (formData.password.length < 6) {
       toast.error("Password too short", {
         description: "Password must be at least 6 characters long.",
-        className: "bg-background text-foreground border-border",
-        descriptionClassName: "text-muted-foreground",
       });
       return;
     }
 
     setIsLoading(true);
 
-    // Simulate registration process
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success("Account created successfully!", {
-        description: "Welcome to Digital Prescription!",
-        className: "bg-background text-foreground border-border",
-        descriptionClassName: "text-muted-foreground",
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          bmdcReg: formData.bmdcReg,
+          specialty: formData.specialty,
+        }),
       });
-      router.push("/dashboard");
-    }, 1500);
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token and user data
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        toast.success("Account created successfully!", {
+          description: "Welcome to Digital Prescription!",
+        });
+        router.push("/pricing");
+      } else {
+        toast.error("Registration failed", {
+          description: data.error || "Please try again.",
+        });
+      }
+    } catch (error) {
+      toast.error("Registration error", {
+        description: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
