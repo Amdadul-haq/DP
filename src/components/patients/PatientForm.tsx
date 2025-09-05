@@ -1,7 +1,7 @@
+// components/patients/PatientForm.tsx
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,10 +77,23 @@ export function PatientForm({
         onSuccess();
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to save patient");
+
+        // Show the specific error message from the API
+        if (response.status === 409) {
+          // Duplicate mobile number error
+          toast.error(error.error || "Duplicate mobile number", {
+            description:
+              "Please use a different mobile number!",
+            duration: 5000, // Show for longer
+          });
+        } else {
+          toast.error(error.error || "Failed to save patient");
+        }
       }
     } catch (error) {
-      toast.error("Failed to save patient");
+      toast.error("Failed to save patient", {
+        description: "An unexpected error occurred. Please try again.",
+      });
     } finally {
       setLoading(false);
     }

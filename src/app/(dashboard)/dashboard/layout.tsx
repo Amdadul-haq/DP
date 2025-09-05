@@ -1,3 +1,4 @@
+// src/app/(dashboard)/dashboard/layout.tsx
 "use client";
 
 import { useState } from "react";
@@ -28,6 +29,7 @@ import {
   LogOut,
   BriefcaseMedical,
 } from "lucide-react";
+import { LogoutConfirmDialog } from "@/components/logout-confirm-dialog";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -38,9 +40,19 @@ const navigation = [
   { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const pathname = usePathname();
+
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLogoutDialogOpen(true);
+  };
 
   return (
     <UserProvider>
@@ -78,10 +90,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarMenu>
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild>
-                          <Link href="/logout">
+                          <button
+                            onClick={handleLogoutClick}
+                            className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                          >
                             <LogOut className="h-5 w-5" />
                             <span>Logout</span>
-                          </Link>
+                          </button>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     </SidebarMenu>
@@ -147,14 +162,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </nav>
                           </div>
                           <div className="mt-auto">
-                            <Link
-                              href="/logout"
-                              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                              onClick={() => setSidebarOpen(false)}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setLogoutDialogOpen(true);
+                                setSidebarOpen(false);
+                              }}
+                              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
                             >
                               <LogOut className="h-5 w-5 mr-3" />
                               <span>Logout</span>
-                            </Link>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -188,6 +206,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <LogoutConfirmDialog
+        open={logoutDialogOpen}
+        onOpenChange={setLogoutDialogOpen}
+      />
     </UserProvider>
   );
 }

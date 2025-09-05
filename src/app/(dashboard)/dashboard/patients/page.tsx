@@ -275,7 +275,7 @@ export default function Patients() {
                   <TableCell className="font-medium">
                     {patient.full_name}
                     {patient.blood_group && (
-                      <Badge variant="outline" className="ml-2">
+                      <Badge variant="outline" className="ml-2 text-green-600">
                         {patient.blood_group}
                       </Badge>
                     )}
