@@ -1,11 +1,9 @@
-// src/components/landing/Pricing.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, Variants } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 
-// Animation variants
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -29,127 +27,61 @@ const itemVariants: Variants = {
   },
 };
 
-interface Plan {
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  cta: string;
-  highlighted?: boolean;
-  saving?: string;
-}
-
-const plans: Record<string, Plan[]> = {
-  monthly: [
-    {
-      name: "Free",
-      price: "$0",
-      period: "month",
-      description: "For students and new practitioners getting started",
-      features: [
-        "Up to 5 prescriptions per month",
-        "Basic medicine database access",
-        "Patient management (up to 10 patients)",
-        "PDF download",
-        "Community support",
-      ],
-      cta: "Get Started",
-    },
-    {
-      name: "Starter",
-      price: "$5",
-      period: "month",
-      description: "For individual practitioners with basic needs",
-      features: [
-        "Up to 30 prescriptions per month",
-        "Basic medicine database access",
-        "Patient management",
-        "PDF download",
-        "Email support",
-      ],
-      cta: "Get Started",
-    },
-    {
-      name: "Professional",
-      price: "$10",
-      period: "month",
-      description: "For established practices with higher volume",
-      features: [
-        "Unlimited prescriptions",
-        "Full medicine database access",
-        "Advanced patient management",
-        "Custom prescription templates",
-        "Priority support",
-      ],
-      cta: "Get Started",
-      highlighted: true,
-    },
-  ],
-  yearly: [
-    {
-      name: "Free",
-      price: "$0",
-      period: "year",
-      description: "For students and new practitioners getting started",
-      features: [
-        "Up to 5 prescriptions per month",
-        "Basic medicine database access",
-        "Patient management (up to 10 patients)",
-        "PDF download",
-        "Community support",
-      ],
-      cta: "Get Started",
-    },
-    {
-      name: "Starter",
-      price: "$60",
-      period: "year",
-      description: "For individual practitioners with basic needs",
-      features: [
-        "Up to 30 prescriptions per month",
-        "Basic medicine database access",
-        "Patient management",
-        "PDF download",
-        "Email support",
-      ],
-      cta: "Get Started",
-      saving: "Save 16%",
-    },
-    {
-      name: "Professional",
-      price: "$115",
-      period: "year",
-      description: "For established practices with higher volume",
-      features: [
-        "Unlimited prescriptions",
-        "Full medicine database access",
-        "Advanced patient management",
-        "Custom prescription templates",
-        "Priority support",
-      ],
-      cta: "Get Started",
-      highlighted: true,
-      saving: "Save 16%",
-    },
-  ],
-};
-
 export default function Pricing() {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
-    "monthly"
-  );
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(
-    "Professional"
-  );
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  type Plan = {
+    id: string;
+    name: string;
+    description: string;
+    features: string[];
+    price_monthly: number;
+    price_yearly: number;
+    is_active: boolean;
+  };
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/plans", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await response.json();
+        if (response.ok && Array.isArray(data.plans)) {
+          setPlans(data.plans);
+          // Set default selected plan to first non-free plan
+          const nonFreePlan = data.plans.find((plan: Plan) => plan.name !== "Free");
+          if (nonFreePlan) setSelectedPlan(nonFreePlan.name);
+        }
+      } catch {
+        setPlans([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   const handlePlanSelect = (planName: string) => {
     setSelectedPlan(planName);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading plans...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter plans by billing cycle
+  const filteredPlans = plans.filter((plan: Plan) => plan.is_active);
 
   return (
     <section id="pricing" className="py-20 bg-background">
@@ -202,13 +134,15 @@ export default function Pricing() {
           animate={inView ? "visible" : "hidden"}
           className="grid grid-cols-1 md:grid-cols-3 gap-8"
         >
-          {plans[billingCycle].map((plan, index) => {
+          {filteredPlans.map((plan: Plan) => {
             const isSelected = selectedPlan === plan.name;
-            const isHighlighted = plan.highlighted && isSelected;
+            const isHighlighted = plan.name === "Professional" && isSelected;
+            const price = billingCycle === "monthly" ? plan.price_monthly : plan.price_yearly;
+            const period = billingCycle === "monthly" ? "month" : "year";
 
             return (
               <motion.div
-                key={index}
+                key={plan.id}
                 variants={itemVariants}
                 className={`rounded-lg p-8 cursor-pointer transition-all ${
                   isSelected
@@ -227,52 +161,41 @@ export default function Pricing() {
                     Selected
                   </div>
                 )}
-                {plan.saving && (
-                  <div className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full mb-4 ml-2">
-                    {plan.saving}
-                  </div>
-                )}
+                {billingCycle === "yearly" &&
+                  plan.price_yearly < plan.price_monthly * 12 && (
+                    <div className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full mb-4 ml-2">
+                      Save {Math.round((1 - plan.price_yearly / (plan.price_monthly * 12)) * 100)}%
+                    </div>
+                  )}
 
-                <h3 className="text-2xl font-bold text-foreground mb-2">
-                  {plan.name}
-                </h3>
+                <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
                 <div className="flex items-baseline mb-4">
-                  <span className="text-4xl font-bold text-foreground">
-                    {plan.price}
-                  </span>
-                  <span className="text-muted-foreground ml-1">
-                    /{plan.period}
-                  </span>
+                  <span className="text-4xl font-bold text-foreground">${price}</span>
+                  <span className="text-muted-foreground ml-1">/{period}</span>
                 </div>
                 <p className="text-muted-foreground mb-6">{plan.description}</p>
-
                 <ul className="mb-8 space-y-3">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center">
-                      <svg
-                        className="h-5 w-5 text-green-500 mr-2"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span className="text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
+                  {Array.isArray(plan.features)
+                    ? plan.features.map((feature: string, featureIndex: number) => (
+                        <li key={featureIndex} className="flex items-center">
+                          <svg
+                            className="h-5 w-5 text-green-500 mr-2"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span className="text-muted-foreground">{feature}</span>
+                        </li>
+                      ))
+                    : null}
                 </ul>
-
-                <button
-                  className={`w-full py-3 px-4 rounded-md font-medium ${
-                    isSelected
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-muted text-foreground hover:bg-muted/80"
-                  } transition-colors`}
-                >
-                  {plan.cta}
+                <button className="w-full py-3 px-4 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                  Get Started
                 </button>
               </motion.div>
             );

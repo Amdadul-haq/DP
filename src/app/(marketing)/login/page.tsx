@@ -47,19 +47,22 @@ export default function Login() {
           description: "Welcome back to your dashboard.",
         });
 
-        // Check subscription status
-        const subscriptionResponse = await fetch("/api/auth/subscription", {
-          headers: {
-            Authorization: `Bearer ${data.token}`,
-          },
-        });
-
-        const subscriptionData = await subscriptionResponse.json();
-
-        if (subscriptionData.hasActiveSubscription) {
-          router.push("/dashboard");
+        // Role-based redirect
+        if (data.user.role === "assistant") {
+          router.push("/dashboard/patients");
         } else {
-          router.push("/pricing");
+          // Doctor: check subscription status
+          const subscriptionResponse = await fetch("/api/auth/subscription", {
+            headers: {
+              Authorization: `Bearer ${data.token}`,
+            },
+          });
+          const subscriptionData = await subscriptionResponse.json();
+          if (subscriptionData.hasActiveSubscription) {
+            router.push("/dashboard");
+          } else {
+            router.push("/pricing");
+          }
         }
       } else {
         toast.error("Login failed", {

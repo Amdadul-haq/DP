@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user with password hash
+    // Get user with password hash and role
     const result = await pool.query(
-      'SELECT id, email, password_hash, first_name, last_name, bmdc_reg, specialty FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, first_name, last_name, bmdc_reg, specialty, role, doctor_id FROM users WHERE email = $1',
       [email]
     );
 

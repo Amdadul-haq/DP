@@ -18,6 +18,8 @@ export interface User {
   last_name: string;
   bmdc_reg: string;
   specialty: string | null;
+  role: string;
+  doctor_id?: number;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -72,7 +74,7 @@ export async function getUserFromSession(token: string): Promise<User | null> {
   try {
     const payload = await verifyJWT(token);
     const result = await pool.query(
-      'SELECT id, email, first_name, last_name, bmdc_reg, specialty FROM users WHERE id = $1',
+      'SELECT id, email, first_name, last_name, bmdc_reg, specialty, role, doctor_id FROM users WHERE id = $1',
       [payload.userId]
     );
     return result.rows[0] || null;

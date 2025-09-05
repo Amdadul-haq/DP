@@ -1,8 +1,8 @@
 // src/app/(dashboard)/dashboard/layout.tsx
 "use client";
 
-import { useState } from "react";
-import { UserProvider } from "@/context/UserContext";
+import React, { useState } from "react";
+import { useUser, UserProvider } from "@/context/UserContext";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -10,17 +10,13 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
-  Menu,
-  X,
   LayoutDashboard,
   Users,
   FileText,
@@ -36,26 +32,46 @@ const navigation = [
   { name: "Patients", href: "/dashboard/patients", icon: Users },
   { name: "Prescriptions", href: "/dashboard/prescriptions", icon: FileText },
   { name: "Medicine", href: "/dashboard/medicine", icon: BriefcaseMedical },
+  { name: "Assistants", href: "/dashboard/assistants", icon: Users },
   { name: "Profile", href: "/dashboard/profile", icon: User },
   { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
 ];
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const pathname = usePathname();
-
-  const handleLogoutClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setLogoutDialogOpen(true);
-  };
-
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </UserProvider>
+  );
+}
+
+import { useEffect } from "react";
+
+function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
+    const { user } = useUser();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+    const pathname = usePathname();
+
+    // Route guard: only restrict assistants, not doctors
+    useEffect(() => {
+      if (
+        user &&
+        user.role === "assistant" &&
+        pathname !== "/dashboard/patients" &&
+        pathname !== "/dashboard/patients/new"
+      ) {
+        window.location.replace("/dashboard/patients");
+      }
+      // No restriction for doctors
+    }, [user, pathname]);
+
+    // Assistants only see Patients
+    const filteredNavigation = user && user.role === "assistant"
+      ? navigation.filter(item => item.name === "Patients")
+      : navigation.filter(item => !(!user && ["Billing", "Assistants"].includes(item.name)));
+
+    return (
       <div className="flex h-screen bg-background">
         {/* Sidebar for desktop */}
         <div className="hidden md:block">
@@ -66,39 +82,29 @@ export default function DashboardLayout({
                   <SidebarGroupLabel>Navigation</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {navigation.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <SidebarMenuItem key={item.name}>
-                            <SidebarMenuButton
-                              asChild
-                              isActive={pathname === item.href}
-                            >
-                              <Link href={item.href}>
-                                <Icon className="h-5 w-5" />
-                                <span>{item.name}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        );
-                      })}
+                      {filteredNavigation.map(item => (
+                        <Link key={item.name} href={item.href} className="flex items-center gap-2 p-2 rounded hover:bg-muted">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.name}</span>
+                        </Link>
+                      ))}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
                 <SidebarGroup className="mt-auto">
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <button
-                            onClick={handleLogoutClick}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                          >
-                            <LogOut className="h-5 w-5" />
-                            <span>Logout</span>
-                          </button>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setLogoutDialogOpen(true);
+                          setSidebarOpen(false);
+                        }}
+                        className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
+                      >
+                        <LogOut className="h-5 w-5 mr-3" />
+                        <span>Logout</span>
+                      </button>
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
@@ -107,81 +113,107 @@ export default function DashboardLayout({
           </SidebarProvider>
         </div>
 
-        {/* Main content */}
-        <div className="flex flex-col flex-1 w-full min-w-0 overflow-hidden">
+        {/* Sidebar for mobile (hamburger menu) */}
+        <div className="md:hidden">
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="fixed top-4 left-4 z-50">
+                <LayoutDashboard className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0">
+              <SidebarProvider>
+                <Sidebar>
+                  <SidebarContent>
+                    <SidebarGroup>
+                      <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                      <SidebarGroupContent>
+                        <SidebarMenu>
+                          {filteredNavigation.map(item => (
+                            <Link key={item.name} href={item.href} className="flex items-center gap-2 p-2 rounded hover:bg-muted" onClick={() => setSidebarOpen(false)}>
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.name}</span>
+                            </Link>
+                          ))}
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </SidebarGroup>
+                    <SidebarGroup className="mt-auto">
+                      <SidebarGroupContent>
+                        <SidebarMenu>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setLogoutDialogOpen(true);
+                              setSidebarOpen(false);
+                            }}
+                            className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
+                          >
+                            <LogOut className="h-5 w-5 mr-3" />
+                            <span>Logout</span>
+                          </button>
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    </SidebarGroup>
+                  </SidebarContent>
+                </Sidebar>
+              </SidebarProvider>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+  {/* Main content */}
+  <div className="flex flex-col flex-1 w-full min-w-0 overflow-hidden">
           <header className="bg-background border-b shrink-0">
             <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
               <div className="flex items-center">
                 <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                   <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="md:hidden">
-                      <Menu className="h-6 w-6" />
-                      <span className="sr-only">Toggle sidebar</span>
+                    <Button variant="ghost" size="icon">
+                      <LayoutDashboard className="h-5 w-5" />
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-64 p-0">
-                    <div className="flex flex-col h-full">
-                      <div className="flex items-center justify-between p-4 border-b">
-                        <h2 className="text-lg font-semibold">
-                          Digital Prescription
-                        </h2>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSidebarOpen(false)}
-                        >
-                          <X className="h-5 w-5" />
-                        </Button>
-                      </div>
-                      <div className="flex-1 overflow-y-auto p-4">
-                        <div className="space-y-6">
-                          <div>
-                            <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                              Navigation
-                            </h3>
-                            <nav className="space-y-1">
-                              {navigation.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.href;
-                                return (
-                                  <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                      isActive
-                                        ? "bg-accent text-accent-foreground"
-                                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                                    }`}
-                                    onClick={() => setSidebarOpen(false)}
-                                  >
-                                    <Icon className="h-5 w-5 mr-3" />
+                    <SidebarProvider>
+                      <Sidebar>
+                        <SidebarContent>
+                          <SidebarGroup>
+                            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                            <SidebarGroupContent>
+                              <SidebarMenu>
+                                {filteredNavigation.map(item => (
+                                  <Link key={item.name} href={item.href} className="flex items-center gap-2 p-2 rounded hover:bg-muted">
+                                    <item.icon className="h-4 w-4" />
                                     <span>{item.name}</span>
                                   </Link>
-                                );
-                              })}
-                            </nav>
-                          </div>
-                          <div className="mt-auto">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                setLogoutDialogOpen(true);
-                                setSidebarOpen(false);
-                              }}
-                              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
-                            >
-                              <LogOut className="h-5 w-5 mr-3" />
-                              <span>Logout</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                                ))}
+                              </SidebarMenu>
+                            </SidebarGroupContent>
+                          </SidebarGroup>
+                          <SidebarGroup className="mt-auto">
+                            <SidebarGroupContent>
+                              <SidebarMenu>
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setLogoutDialogOpen(true);
+                                    setSidebarOpen(false);
+                                  }}
+                                  className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors w-full"
+                                >
+                                  <LogOut className="h-5 w-5 mr-3" />
+                                  <span>Logout</span>
+                                </button>
+                              </SidebarMenu>
+                            </SidebarGroupContent>
+                          </SidebarGroup>
+                        </SidebarContent>
+                      </Sidebar>
+                    </SidebarProvider>
                   </SheetContent>
                 </Sheet>
                 <h1 className="text-xl font-semibold ml-2 md:ml-0">
-                  {navigation.find((item) => item.href === pathname)?.name ||
-                    "Dashboard"}
+                  {filteredNavigation.find((item) => item.href === pathname)?.name || "Dashboard"}
                 </h1>
               </div>
               <div className="flex items-center space-x-4">
@@ -205,13 +237,7 @@ export default function DashboardLayout({
             </div>
           </main>
         </div>
+        <LogoutConfirmDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
       </div>
-
-      {/* Logout Confirmation Dialog */}
-      <LogoutConfirmDialog
-        open={logoutDialogOpen}
-        onOpenChange={setLogoutDialogOpen}
-      />
-    </UserProvider>
-  );
+    );
 }

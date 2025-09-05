@@ -40,9 +40,14 @@ export async function GET(
       return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
 
+    // If assistant, get doctor_id
+    let doctorId = user.id;
+    if (user.role === 'assistant' && user.doctor_id) {
+      doctorId = user.doctor_id;
+    }
     const result = await pool.query(
       `SELECT * FROM patients WHERE id = $1 AND doctor_id = $2`,
-      [resolvedParams.id, user.id]
+      [resolvedParams.id, doctorId]
     );
 
     if (result.rows.length === 0) {
@@ -90,6 +95,11 @@ export async function PUT(
     // Handle empty last_visit_date by setting it to null
     const lastVisitDate = patientData.last_visit_date?.trim() === '' ? null : patientData.last_visit_date;
 
+    // If assistant, get doctor_id
+    let doctorId = user.id;
+    if (user.role === 'assistant' && user.doctor_id) {
+      doctorId = user.doctor_id;
+    }
     const result = await pool.query(
       `UPDATE patients 
        SET full_name = $1, gender = $2, dob = $3, mobile = $4, email = $5, 
@@ -105,8 +115,7 @@ export async function PUT(
         patientData.blood_group,
         patientData.address,
         lastVisitDate,
-        resolvedParams.id, // Use the resolved params
-        user.id
+        resolvedParams.id, doctorId
       ]
     );
 
@@ -161,9 +170,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
 
+    // If assistant, get doctor_id
+    let doctorId = user.id;
+    if (user.role === 'assistant' && user.doctor_id) {
+      doctorId = user.doctor_id;
+    }
     const result = await pool.query(
       `DELETE FROM patients WHERE id = $1 AND doctor_id = $2 RETURNING id`,
-      [resolvedParams.id, user.id] // Use the resolved params
+      [resolvedParams.id, doctorId]
     );
 
     if (result.rows.length === 0) {

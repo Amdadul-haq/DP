@@ -44,37 +44,56 @@ const itemVariants: Variants = {
 };
 
 export default function PricingPage() {
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
-    "monthly"
-  );
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
   const router = useRouter();
 
   useEffect(() => {
-    // Get token from localStorage on client side only
+    // Get token and user from localStorage
     const storedToken = localStorage.getItem("token");
     setToken(storedToken);
-
+    const storedUser = localStorage.getItem("user");
+    let userRole = null;
+    if (storedUser) {
+      try {
+        userRole = JSON.parse(storedUser).role;
+      } catch {}
+    }
+    // If assistant, redirect to patients
+    if (userRole === "assistant") {
+      router.replace("/dashboard/patients");
+      return;
+    }
+    // If not logged in, redirect to login
+    if (!storedToken) {
+      toast.error("Please login first");
+      router.push("/login");
+      return;
+    }
     const fetchPlans = async () => {
       try {
-        const response = await fetch("/api/plans");
+        const response = await fetch("/api/plans", {
+          headers: {
+            Authorization: `Bearer ${storedToken}`,
+          },
+        });
         const data = await response.json();
         if (response.ok) {
           setPlans(data.plans);
           // Set the default selected plan to the first non-free plan
-          const nonFreePlan = data.plans.find(
-            (plan: Plan) => plan.name !== "Free"
-          );
+          const nonFreePlan = data.plans.find((plan: Plan) => plan.name !== "Free");
           if (nonFreePlan) {
             setSelectedPlan(nonFreePlan.id);
           }
+        } else if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          toast.error("Session expired. Please login again.");
+          router.push("/login");
         }
       } catch (error) {
         console.error("Failed to fetch plans:", error);
@@ -82,9 +101,8 @@ export default function PricingPage() {
         setIsLoading(false);
       }
     };
-
     fetchPlans();
-  }, []);
+  }, [router]);
 
   const handlePlanSelect = (planId: string) => {
     setSelectedPlan(planId);

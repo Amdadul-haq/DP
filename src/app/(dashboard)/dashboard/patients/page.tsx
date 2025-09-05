@@ -222,11 +222,35 @@ export default function Patients() {
             patients)
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/patients/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Patient
-          </Link>
+        <Button
+          onClick={async () => {
+            const storedUser = localStorage.getItem("user");
+            let userRole = null;
+            if (storedUser) {
+              try {
+                userRole = JSON.parse(storedUser).role;
+              } catch {}
+            }
+            if (userRole === "assistant") {
+              // Assistants can always add patients
+              window.location.href = "/dashboard/patients/new";
+              return;
+            }
+            // Doctor: check subscription
+            const token = localStorage.getItem("token");
+            const response = await fetch("/api/auth/subscription", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (data.hasActiveSubscription) {
+              window.location.href = "/dashboard/patients/new";
+            } else {
+              toast.error("You need an active subscription to add patients.");
+            }
+          }}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add New Patient
         </Button>
       </div>
 

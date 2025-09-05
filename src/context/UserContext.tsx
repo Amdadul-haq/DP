@@ -10,6 +10,8 @@ interface User {
   lastName: string;
   bmdcReg: string;
   specialty?: string;
+  role: string;
+  doctor_id?: string;
 }
 
 interface UserContextType {
@@ -32,13 +34,20 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     if (storedUser) {
       const rawUser = JSON.parse(storedUser);
       // Map backend fields to frontend context
+      let doctorId: string | undefined = undefined;
+      if (rawUser.role === "assistant") {
+        // Always set doctor_id for assistants
+        doctorId = rawUser.doctor_id?.toString() ?? rawUser.doctorId?.toString() ?? undefined;
+      }
       setUser({
-        id: rawUser.id,
+        id: rawUser.id?.toString(),
         email: rawUser.email,
         firstName: rawUser.first_name ?? rawUser.firstName ?? "",
         lastName: rawUser.last_name ?? rawUser.lastName ?? "",
         bmdcReg: rawUser.bmdc_reg ?? rawUser.bmdcReg ?? "",
-        specialty: rawUser.specialty ?? ""
+        specialty: rawUser.specialty ?? "",
+        role: rawUser.role ?? "doctor",
+        doctor_id: doctorId
       });
     }
 
