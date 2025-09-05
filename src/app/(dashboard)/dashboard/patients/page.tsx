@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -78,6 +77,22 @@ interface PatientsResponse {
   totalCount: number;
 }
 
+interface SubscriptionWithPlan {
+  id: number;
+  user_id: number;
+  plan_id: number;
+  status: "active" | "canceled" | "past_due" | "expired";
+  billing_cycle: "monthly" | "yearly";
+  current_period_start: string;
+  current_period_end: string;
+  stripe_subscription_id?: string;
+  stripe_customer_id?: string;
+  created_at: string;
+  updated_at: string;
+  plan_name: string;
+  features: string[];
+}
+
 export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,11 +113,7 @@ export default function Patients() {
         `/api/patients?page=${page}&limit=15&search=${encodeURIComponent(
           search
         )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.ok) {
@@ -140,9 +151,7 @@ export default function Patients() {
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/patients/${patientId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
@@ -163,14 +172,12 @@ export default function Patients() {
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-
     if (
       monthDiff < 0 ||
       (monthDiff === 0 && today.getDate() < birthDate.getDate())
     ) {
       age--;
     }
-
     return age;
   };
 
@@ -179,24 +186,105 @@ export default function Patients() {
     return new Date(dateString).toLocaleDateString();
   };
 
+const handleAddNewPatient = async () => {
+  console.log("===== Add New Patient Debugging =====");
+
+  const storedUser = localStorage.getItem("user");
+  console.log("Stored user string:", storedUser);
+
+  if (!storedUser) {
+    console.error("No user found in localStorage!");
+    toast.error("You are not allowed to add patients.");
+    return;
+  }
+
+  let userRole: string | null = null;
+  let userId: number | null = null;
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    console.log("Parsed user object:", parsedUser);
+
+    userRole = parsedUser.role;
+    userId = parsedUser.id;
+
+    console.log("User role:", userRole);
+    console.log("User ID:", userId);
+  } catch (err) {
+    console.error("Failed to parse stored user:", err);
+    toast.error("You are not allowed to add patients.");
+    return;
+  }
+
+  if (!userRole) {
+    console.error("User role is missing!");
+    toast.error("You are not allowed to add patients.");
+    return;
+  }
+
+  // Assistants are always allowed
+  if (userRole === "assistant") {
+    console.log("User is an assistant. Redirecting to new patient page.");
+    window.location.href = "/dashboard/patients/new";
+    return;
+  }
+
+  // Doctors need an active subscription
+  if (userRole === "doctor") {
+    const token = localStorage.getItem("token");
+    console.log("JWT token:", token);
+
+    if (!token) {
+      console.error("No token found in localStorage!");
+      toast.error("You are not allowed to add patients.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/subscription", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("Subscription API response status:", response.status);
+
+      const data = await response.json();
+      console.log("Subscription API response data:", data);
+
+      // Check for active subscription
+      if (data.hasActiveSubscription) {
+        console.log("User has an active subscription. Redirecting...");
+        window.location.href = "/dashboard/patients/new";
+      } else {
+        console.warn("User does NOT have an active subscription!");
+        toast.error("You need an active subscription to add patients.");
+      }
+    } catch (err) {
+      console.error("Error fetching subscription:", err);
+      toast.error("Failed to check subscription. Try again later.");
+    }
+    return;
+  }
+
+  // Unknown role
+  console.error("Unknown user role:", userRole);
+  toast.error("You are not allowed to add patients.");
+};
+
+
+
+
   if (loading) {
     return (
       <div>
         <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
-          </div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
           <Skeleton className="h-10 w-40" />
         </div>
-
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <Skeleton className="h-6 w-40 mb-2" />
-                <Skeleton className="h-4 w-60" />
-              </div>
+              <Skeleton className="h-6 w-40 mb-2" />
+              <Skeleton className="h-4 w-60" />
               <Skeleton className="h-10 w-64" />
             </div>
           </CardHeader>
@@ -222,33 +310,7 @@ export default function Patients() {
             patients)
           </p>
         </div>
-        <Button
-          onClick={async () => {
-            const storedUser = localStorage.getItem("user");
-            let userRole = null;
-            if (storedUser) {
-              try {
-                userRole = JSON.parse(storedUser).role;
-              } catch {}
-            }
-            if (userRole === "assistant") {
-              // Assistants can always add patients
-              window.location.href = "/dashboard/patients/new";
-              return;
-            }
-            // Doctor: check subscription
-            const token = localStorage.getItem("token");
-            const response = await fetch("/api/auth/subscription", {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await response.json();
-            if (data.hasActiveSubscription) {
-              window.location.href = "/dashboard/patients/new";
-            } else {
-              toast.error("You need an active subscription to add patients.");
-            }
-          }}
-        >
+        <Button onClick={handleAddNewPatient}>
           <Plus className="h-4 w-4 mr-2" />
           Add New Patient
         </Button>

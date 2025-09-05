@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await hashPassword(password);
 
-    // Create user
-    const result = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, bmdc_reg, specialty)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, email, first_name, last_name, bmdc_reg, specialty`,
-      [email, passwordHash, firstName, lastName, bmdcReg, specialty]
-    );
+// Create user
+const result = await pool.query(
+  `INSERT INTO users (email, password_hash, first_name, last_name, bmdc_reg, specialty, role)
+   VALUES ($1, $2, $3, $4, $5, $6, $7)
+   RETURNING id, email, first_name, last_name, bmdc_reg, specialty, role`,
+  [email, passwordHash, firstName, lastName, bmdcReg, specialty || null, 'doctor'] // default role
+);
 
     const user = result.rows[0];
 

@@ -83,6 +83,7 @@ export default function Register() {
           lastName: formData.lastName,
           bmdcReg: formData.bmdcReg,
           specialty: formData.specialty,
+          role: "doctor", // must include role
         }),
       });
 

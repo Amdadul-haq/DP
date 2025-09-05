@@ -1,7 +1,7 @@
 // src/app/(marketing)/checkout/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,13 +9,20 @@ import { getPlanById, type Plan } from "@/lib/plans";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
+
 export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-center"><p className="text-muted-foreground">Loading plan details...</p></div></div>}>
+      <CheckoutPageContent />
+    </Suspense>
+  );
+}
+
+function CheckoutPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
-    "monthly"
-  );
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -35,16 +42,13 @@ export default function CheckoutPage() {
 
   const handleSubscribe = async () => {
     if (!plan) return;
-
     setIsLoading(true);
-
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Please login first");
       router.push("/login");
       return;
     }
-
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
@@ -53,13 +57,11 @@ export default function CheckoutPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          planId: plan.id, // This should now be "1", "2", or "3"
+          planId: plan.id,
           billingCycle,
         }),
       });
-
       const data = await response.json();
-
       if (response.ok) {
         toast.success("Subscription created successfully!");
         setTimeout(() => {
@@ -86,8 +88,7 @@ export default function CheckoutPage() {
     );
   }
 
-  const price =
-    billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
+  const price = billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
   const period = billingCycle === "monthly" ? "month" : "year";
 
   return (
@@ -101,55 +102,27 @@ export default function CheckoutPage() {
             Review your plan details and confirm your subscription
           </p>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card>
             <CardContent className="p-8">
-              <h2 className="text-2xl font-bold text-foreground mb-6">
-                Order Summary
-              </h2>
-
+              <h2 className="text-2xl font-bold text-foreground mb-6">Order Summary</h2>
               <div className="flex justify-between items-center mb-6 p-4 bg-muted rounded-lg">
                 <div>
-                  <h3 className="font-semibold text-foreground">
-                    {plan.name} Plan
-                  </h3>
-                  <p className="text-muted-foreground text-sm">
-                    {plan.description}
-                  </p>
+                  <h3 className="font-semibold text-foreground">{plan.name} Plan</h3>
+                  <p className="text-muted-foreground text-sm">{plan.description}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-foreground">
-                    ${price}/{period}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {billingCycle} billing
-                  </p>
+                  <p className="font-bold text-foreground">${price}/{period}</p>
+                  <p className="text-muted-foreground text-sm">{billingCycle} billing</p>
                 </div>
               </div>
-
               <div className="mb-6">
-                <h4 className="font-semibold text-foreground mb-3">
-                  Billing Cycle
-                </h4>
+                <h4 className="font-semibold text-foreground mb-3">Billing Cycle</h4>
                 <div className="flex gap-4">
-                  <Button
-                    variant={billingCycle === "monthly" ? "default" : "outline"}
-                    onClick={() => setBillingCycle("monthly")}
-                    className="flex-1"
-                  >
-                    Monthly
-                  </Button>
-                  <Button
-                    variant={billingCycle === "yearly" ? "default" : "outline"}
-                    onClick={() => setBillingCycle("yearly")}
-                    className="flex-1"
-                  >
-                    Yearly
-                  </Button>
+                  <Button variant={billingCycle === "monthly" ? "default" : "outline"} onClick={() => setBillingCycle("monthly")} className="flex-1">Monthly</Button>
+                  <Button variant={billingCycle === "yearly" ? "default" : "outline"} onClick={() => setBillingCycle("yearly")} className="flex-1">Yearly</Button>
                 </div>
               </div>
-
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -162,52 +135,29 @@ export default function CheckoutPage() {
                 <div className="border-t pt-2 mt-2">
                   <div className="flex justify-between font-semibold">
                     <span className="text-foreground">Total</span>
-                    <span className="text-foreground">
-                      ${price}/{period}
-                    </span>
+                    <span className="text-foreground">${price}/{period}</span>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardContent className="p-8">
-              <h2 className="text-2xl font-bold text-foreground mb-6">
-                Plan Features
-              </h2>
-
+              <h2 className="text-2xl font-bold text-foreground mb-6">Plan Features</h2>
               <ul className="space-y-3 mb-8">
                 {plan.features.map((feature, index) => (
                   <li key={index} className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-green-500 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
+                    <svg className="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                     <span className="text-muted-foreground">{feature}</span>
                   </li>
                 ))}
               </ul>
-
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={handleSubscribe}
-                disabled={isLoading}
-              >
+              <Button className="w-full" size="lg" onClick={handleSubscribe} disabled={isLoading}>
                 {isLoading ? "Processing..." : "Confirm & Subscribe"}
               </Button>
-
-              <p className="text-sm text-muted-foreground mt-4 text-center">
-                Your subscription will automatically renew until canceled.
-              </p>
+              <p className="text-sm text-muted-foreground mt-4 text-center">Your subscription will automatically renew until canceled.</p>
             </CardContent>
           </Card>
         </div>

@@ -58,7 +58,9 @@ export default function Dashboard() {
           Dashboard Overview
         </h2>
         <p className="text-muted-foreground">
-          {`Welcome back, Dr. ${user?.firstName || ""} ${user?.lastName || ""}. Here's what's happening with your practice today.`}
+          {user?.role === "assistant"
+            ? `Welcome back, ${user?.firstName} ${user?.lastName}. You are logged in as an Assistant.`
+            : `Welcome back, Dr. ${user?.firstName} ${user?.lastName}. Here's what's happening with your practice today.`}
         </p>
       </div>
 
