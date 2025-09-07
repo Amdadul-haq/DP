@@ -1,3 +1,4 @@
+// src/app/(dashboard)/dashboard/patients/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -54,7 +55,7 @@ interface Patient {
   id: number;
   full_name: string;
   gender: "Male" | "Female" | "Other";
-  dob: string;
+  age: number;
   mobile: string;
   email?: string;
   blood_group?: string;
@@ -68,22 +69,6 @@ interface PatientsResponse {
   totalPages: number;
   currentPage: number;
   totalCount: number;
-}
-
-interface SubscriptionWithPlan {
-  id: number;
-  user_id: number;
-  plan_id: number;
-  status: "active" | "canceled" | "past_due" | "expired";
-  billing_cycle: "monthly" | "yearly";
-  current_period_start: string;
-  current_period_end: string;
-  stripe_subscription_id?: string;
-  stripe_customer_id?: string;
-  created_at: string;
-  updated_at: string;
-  plan_name: string;
-  features: string[];
 }
 
 export default function Patients() {
@@ -159,102 +144,55 @@ export default function Patients() {
     }
   };
 
-  const calculateAge = (dob: string) => {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-    return age;
-  };
-
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Never";
     return new Date(dateString).toLocaleDateString();
   };
 
   const handleAddNewPatient = async () => {
-    console.log("===== Add New Patient Debugging =====");
-
     const storedUser = localStorage.getItem("user");
-    console.log("Stored user string:", storedUser);
-
     if (!storedUser) {
-      console.error("No user found in localStorage!");
       toast.error("You are not allowed to add patients.");
       return;
     }
 
-    let userRole: string | null = null;
     try {
-      const parsedUser = JSON.parse(storedUser);
-      console.log("Parsed user object:", parsedUser);
+      const user = JSON.parse(storedUser);
+      const userRole = user.role;
 
-      userRole = parsedUser.role;
-      console.log("User role:", userRole);
-    } catch (err) {
-      console.error("Failed to parse stored user:", err);
-      toast.error("You are not allowed to add patients.");
-      return;
-    }
-
-    if (!userRole) {
-      console.error("User role is missing!");
-      toast.error("You are not allowed to add patients.");
-      return;
-    }
-
-    // Assistants are always allowed
-    if (userRole === "assistant") {
-      console.log("User is an assistant. Redirecting to new patient page.");
-      window.location.href = "/dashboard/patients/new";
-      return;
-    }
-
-    // Doctors need an active subscription
-    if (userRole === "doctor") {
-      const token = localStorage.getItem("token");
-      console.log("JWT token:", token);
-
-      if (!token) {
-        console.error("No token found in localStorage!");
-        toast.error("You are not allowed to add patients.");
+      if (userRole === "assistant") {
+        window.location.href = "/dashboard/patients/new";
         return;
       }
 
-      try {
+      if (userRole === "doctor") {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("You are not allowed to add patients.");
+          return;
+        }
+
         const response = await fetch("/api/auth/subscription", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("Subscription API response status:", response.status);
-
-        const data = await response.json();
-        console.log("Subscription API response data:", data);
-
-        // Check for active subscription
-        if (data.hasActiveSubscription) {
-          console.log("User has an active subscription. Redirecting...");
-          window.location.href = "/dashboard/patients/new";
+        if (response.ok) {
+          const data = await response.json();
+          if (data.hasActiveSubscription) {
+            window.location.href = "/dashboard/patients/new";
+          } else {
+            toast.error("You need an active subscription to add patients.");
+          }
         } else {
-          console.warn("User does NOT have an active subscription!");
-          toast.error("You need an active subscription to add patients.");
+          toast.error("Failed to check subscription.");
         }
-      } catch (err) {
-        console.error("Error fetching subscription:", err);
-        toast.error("Failed to check subscription. Try again later.");
+        return;
       }
-      return;
-    }
 
-    // Unknown role
-    console.error("Unknown user role:", userRole);
-    toast.error("You are not allowed to add patients.");
+      toast.error("You are not allowed to add patients.");
+    } catch (err) {
+      toast.error("You are not allowed to add patients.");
+    }
   };
 
   if (loading) {
@@ -351,7 +289,7 @@ export default function Patients() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>{calculateAge(patient.dob)} years</TableCell>
+                  <TableCell>{patient.age} years</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -378,10 +316,9 @@ export default function Patients() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
-                          onClick={() => {
-                            // Navigate to patient details page
-                            router.push(`/dashboard/patients/${patient.id}`);
-                          }}
+                          onClick={() =>
+                            router.push(`/dashboard/patients/${patient.id}`)
+                          }
                         >
                           <Eye className="h-4 w-4 mr-2" />
                           View / Update Details
@@ -457,7 +394,6 @@ export default function Patients() {
         </CardContent>
       </Card>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

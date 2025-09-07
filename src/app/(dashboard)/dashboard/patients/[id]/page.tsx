@@ -1,4 +1,4 @@
-// app/dashboard/patients/[id]/page.tsx
+// src/app/(dashboard)/dashboard/patients/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -45,7 +45,7 @@ interface Patient {
   id: number;
   full_name: string;
   gender: "Male" | "Female" | "Other";
-  dob: string;
+  age: number;
   mobile: string;
   email?: string;
   blood_group?: string;
@@ -137,20 +137,6 @@ export default function PatientDetailsPage() {
     }
   };
 
-  const calculateAge = (dob: string) => {
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
-    return age;
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
@@ -179,7 +165,7 @@ export default function PatientDetailsPage() {
             {patient.full_name}
           </h2>
           <p className="text-muted-foreground">
-            Patient ID: {patient.id} | Age: {calculateAge(patient.dob)} years
+            Patient ID: {patient.id} | Age: {patient.age} years
           </p>
         </div>
         <div className="flex gap-2">
@@ -232,13 +218,8 @@ export default function PatientDetailsPage() {
                       <dd className="font-medium">{patient.gender}</dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-muted-foreground">
-                        Date of Birth
-                      </dt>
-                      <dd className="font-medium">
-                        {formatDate(patient.dob)} ({calculateAge(patient.dob)}{" "}
-                        years)
-                      </dd>
+                      <dt className="text-sm text-muted-foreground">Age</dt>
+                      <dd className="font-medium">{patient.age} years</dd>
                     </div>
                     <div>
                       <dt className="text-sm text-muted-foreground">
@@ -337,7 +318,6 @@ export default function PatientDetailsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Patient Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -355,7 +335,6 @@ export default function PatientDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Vitals Dialog */}
       <Dialog open={vitalsDialogOpen} onOpenChange={setVitalsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -373,7 +352,6 @@ export default function PatientDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

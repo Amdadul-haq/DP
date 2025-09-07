@@ -6,7 +6,7 @@ import { getUserFromSession } from '@/lib/auth';
 interface PatientData {
   full_name: string;
   gender: 'Male' | 'Female' | 'Other';
-  dob: string;
+  age: number;
   mobile: string;
   email?: string;
   blood_group?: string;
@@ -19,9 +19,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Await the params first
     const resolvedParams = await params;
-    console.log('Patient ID from params:', resolvedParams); // Debug log
     
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -35,7 +33,6 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Ensure resolvedParams.id exists and is valid
     if (!resolvedParams.id) {
       return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
@@ -45,6 +42,7 @@ export async function GET(
     if (user.role === 'assistant' && user.doctor_id) {
       doctorId = user.doctor_id;
     }
+
     const result = await pool.query(
       `SELECT * FROM patients WHERE id = $1 AND doctor_id = $2`,
       [resolvedParams.id, doctorId]
@@ -70,7 +68,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Await the params first
     const resolvedParams = await params;
     
     const authHeader = request.headers.get('authorization');
@@ -85,12 +82,19 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Ensure resolvedParams.id exists and is valid
     if (!resolvedParams.id) {
       return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
 
     const patientData: PatientData = await request.json();
+
+    // Validate age
+    if (patientData.age <= 0 || patientData.age > 150) {
+      return NextResponse.json(
+        { error: 'Age must be between 1 and 150' },
+        { status: 400 }
+      );
+    }
 
     // Handle empty last_visit_date by setting it to null
     const lastVisitDate = patientData.last_visit_date?.trim() === '' ? null : patientData.last_visit_date;
@@ -100,22 +104,24 @@ export async function PUT(
     if (user.role === 'assistant' && user.doctor_id) {
       doctorId = user.doctor_id;
     }
+
     const result = await pool.query(
       `UPDATE patients 
-       SET full_name = $1, gender = $2, dob = $3, mobile = $4, email = $5, 
+       SET full_name = $1, gender = $2, age = $3, mobile = $4, email = $5, 
            blood_group = $6, address = $7, last_visit_date = $8, updated_at = CURRENT_TIMESTAMP
        WHERE id = $9 AND doctor_id = $10
        RETURNING *`,
       [
         patientData.full_name,
         patientData.gender,
-        patientData.dob,
+        patientData.age,
         patientData.mobile,
         patientData.email,
         patientData.blood_group,
         patientData.address,
         lastVisitDate,
-        resolvedParams.id, doctorId
+        resolvedParams.id, 
+        doctorId
       ]
     );
 
@@ -150,7 +156,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Await the params first
     const resolvedParams = await params;
     
     const authHeader = request.headers.get('authorization');
@@ -165,7 +170,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Ensure resolvedParams.id exists and is valid
     if (!resolvedParams.id) {
       return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
     }
@@ -175,6 +179,7 @@ export async function DELETE(
     if (user.role === 'assistant' && user.doctor_id) {
       doctorId = user.doctor_id;
     }
+
     const result = await pool.query(
       `DELETE FROM patients WHERE id = $1 AND doctor_id = $2 RETURNING id`,
       [resolvedParams.id, doctorId]

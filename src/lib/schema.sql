@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS patients (
     doctor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     full_name TEXT NOT NULL,
     gender gender_enum NOT NULL,
-    dob DATE NOT NULL,
+    age INTEGER NOT NULL CHECK (age >= 0 AND age <= 150),
     mobile VARCHAR(20) NOT NULL,
     email VARCHAR(255),
     blood_group VARCHAR(5),

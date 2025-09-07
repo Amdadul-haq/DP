@@ -7,7 +7,7 @@ interface Patient {
   id?: number;
   full_name: string;
   gender: 'Male' | 'Female' | 'Other';
-  dob: string;
+  age: number;
   mobile: string;
   email?: string;
   blood_group?: string;
@@ -17,8 +17,6 @@ interface Patient {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('GET /api/patients called with search params:', request.nextUrl.searchParams.toString()); // Debug log
-    
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -29,36 +27,45 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     // If assistant, get doctor_id
     let doctorId: number = user.id;
     if (user.role === 'assistant' && typeof user.doctor_id === 'number') {
       doctorId = user.doctor_id;
     }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '15');
     const search = searchParams.get('search') || '';
     const offset = (page - 1) * limit;
+
+    // UPDATED: Use 'age' instead of calculating from 'dob'
     let query = `
-      SELECT id, full_name, gender, dob, mobile, email, blood_group, address, last_visit_date, created_at
+      SELECT id, full_name, gender, age, mobile, email, blood_group, address, last_visit_date, created_at
       FROM patients 
       WHERE doctor_id = $1
     `;
     let countQuery = `SELECT COUNT(*) FROM patients WHERE doctor_id = $1`;
     const queryParams: (string | number)[] = [doctorId];
+
     if (search) {
       query += ` AND (full_name ILIKE $2 OR mobile ILIKE $2)`;
       countQuery += ` AND (full_name ILIKE $2 OR mobile ILIKE $2)`;
       queryParams.push(`%${search}%`);
     }
+
     query += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
     queryParams.push(limit, offset);
+
     const [patientsResult, countResult] = await Promise.all([
       pool.query(query, queryParams),
       pool.query(countQuery, queryParams.slice(0, search ? 2 : 1))
     ]);
+
     const totalCount = parseInt(countResult.rows[0].count);
     const totalPages = Math.ceil(totalCount / limit);
+
     return NextResponse.json({
       patients: patientsResult.rows,
       totalPages,
@@ -92,9 +99,17 @@ export async function POST(request: NextRequest) {
     const patientData: Patient = await request.json();
 
     // Validate required fields
-    if (!patientData.full_name || !patientData.gender || !patientData.dob || !patientData.mobile) {
+    if (!patientData.full_name || !patientData.gender || !patientData.age || !patientData.mobile) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate age
+    if (patientData.age <= 0 || patientData.age > 150) {
+      return NextResponse.json(
+        { error: 'Age must be between 1 and 150' },
         { status: 400 }
       );
     }
@@ -104,16 +119,17 @@ export async function POST(request: NextRequest) {
 
     // Always link patient to the doctor, not the assistant
     const doctorId = user.role === "assistant" && user.doctor_id ? user.doctor_id : user.id;
+
     const result = await pool.query(
       `INSERT INTO patients 
-       (doctor_id, full_name, gender, dob, mobile, email, blood_group, address, last_visit_date)
+       (doctor_id, full_name, gender, age, mobile, email, blood_group, address, last_visit_date)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         doctorId,
         patientData.full_name,
         patientData.gender,
-        patientData.dob,
+        patientData.age,
         patientData.mobile,
         patientData.email,
         patientData.blood_group,
