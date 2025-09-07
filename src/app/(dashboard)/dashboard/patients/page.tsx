@@ -44,18 +44,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { PatientForm } from "@/components/patients/PatientForm";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Trash2, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
 interface Patient {
   id: number;
@@ -94,6 +87,7 @@ interface SubscriptionWithPlan {
 }
 
 export default function Patients() {
+  const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -102,8 +96,6 @@ export default function Patients() {
   const [totalCount, setTotalCount] = useState(0);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const fetchPatients = async (page: number = 1, search: string = "") => {
     try {
@@ -186,91 +178,84 @@ export default function Patients() {
     return new Date(dateString).toLocaleDateString();
   };
 
-const handleAddNewPatient = async () => {
-  console.log("===== Add New Patient Debugging =====");
+  const handleAddNewPatient = async () => {
+    console.log("===== Add New Patient Debugging =====");
 
-  const storedUser = localStorage.getItem("user");
-  console.log("Stored user string:", storedUser);
+    const storedUser = localStorage.getItem("user");
+    console.log("Stored user string:", storedUser);
 
-  if (!storedUser) {
-    console.error("No user found in localStorage!");
-    toast.error("You are not allowed to add patients.");
-    return;
-  }
-
-  let userRole: string | null = null;
-  let userId: number | null = null;
-  try {
-    const parsedUser = JSON.parse(storedUser);
-    console.log("Parsed user object:", parsedUser);
-
-    userRole = parsedUser.role;
-    userId = parsedUser.id;
-
-    console.log("User role:", userRole);
-    console.log("User ID:", userId);
-  } catch (err) {
-    console.error("Failed to parse stored user:", err);
-    toast.error("You are not allowed to add patients.");
-    return;
-  }
-
-  if (!userRole) {
-    console.error("User role is missing!");
-    toast.error("You are not allowed to add patients.");
-    return;
-  }
-
-  // Assistants are always allowed
-  if (userRole === "assistant") {
-    console.log("User is an assistant. Redirecting to new patient page.");
-    window.location.href = "/dashboard/patients/new";
-    return;
-  }
-
-  // Doctors need an active subscription
-  if (userRole === "doctor") {
-    const token = localStorage.getItem("token");
-    console.log("JWT token:", token);
-
-    if (!token) {
-      console.error("No token found in localStorage!");
+    if (!storedUser) {
+      console.error("No user found in localStorage!");
       toast.error("You are not allowed to add patients.");
       return;
     }
 
+    let userRole: string | null = null;
     try {
-      const response = await fetch("/api/auth/subscription", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const parsedUser = JSON.parse(storedUser);
+      console.log("Parsed user object:", parsedUser);
 
-      console.log("Subscription API response status:", response.status);
-
-      const data = await response.json();
-      console.log("Subscription API response data:", data);
-
-      // Check for active subscription
-      if (data.hasActiveSubscription) {
-        console.log("User has an active subscription. Redirecting...");
-        window.location.href = "/dashboard/patients/new";
-      } else {
-        console.warn("User does NOT have an active subscription!");
-        toast.error("You need an active subscription to add patients.");
-      }
+      userRole = parsedUser.role;
+      console.log("User role:", userRole);
     } catch (err) {
-      console.error("Error fetching subscription:", err);
-      toast.error("Failed to check subscription. Try again later.");
+      console.error("Failed to parse stored user:", err);
+      toast.error("You are not allowed to add patients.");
+      return;
     }
-    return;
-  }
 
-  // Unknown role
-  console.error("Unknown user role:", userRole);
-  toast.error("You are not allowed to add patients.");
-};
+    if (!userRole) {
+      console.error("User role is missing!");
+      toast.error("You are not allowed to add patients.");
+      return;
+    }
 
+    // Assistants are always allowed
+    if (userRole === "assistant") {
+      console.log("User is an assistant. Redirecting to new patient page.");
+      window.location.href = "/dashboard/patients/new";
+      return;
+    }
 
+    // Doctors need an active subscription
+    if (userRole === "doctor") {
+      const token = localStorage.getItem("token");
+      console.log("JWT token:", token);
 
+      if (!token) {
+        console.error("No token found in localStorage!");
+        toast.error("You are not allowed to add patients.");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/auth/subscription", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log("Subscription API response status:", response.status);
+
+        const data = await response.json();
+        console.log("Subscription API response data:", data);
+
+        // Check for active subscription
+        if (data.hasActiveSubscription) {
+          console.log("User has an active subscription. Redirecting...");
+          window.location.href = "/dashboard/patients/new";
+        } else {
+          console.warn("User does NOT have an active subscription!");
+          toast.error("You need an active subscription to add patients.");
+        }
+      } catch (err) {
+        console.error("Error fetching subscription:", err);
+        toast.error("Failed to check subscription. Try again later.");
+      }
+      return;
+    }
+
+    // Unknown role
+    console.error("Unknown user role:", userRole);
+    toast.error("You are not allowed to add patients.");
+  };
 
   if (loading) {
     return (
@@ -394,21 +379,12 @@ const handleAddNewPatient = async () => {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
                           onClick={() => {
-                            setSelectedPatient(patient);
-                            setViewDialogOpen(true);
+                            // Navigate to patient details page
+                            router.push(`/dashboard/patients/${patient.id}`);
                           }}
                         >
                           <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedPatient(patient);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
+                          View / Update Details
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -481,100 +457,6 @@ const handleAddNewPatient = async () => {
         </CardContent>
       </Card>
 
-      {/* View Patient Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Patient Details</DialogTitle>
-            <DialogDescription>
-              Complete information for {selectedPatient?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedPatient && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold">Personal Information</h4>
-                <dl className="space-y-2 mt-2">
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Full Name</dt>
-                    <dd>{selectedPatient.full_name}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Gender</dt>
-                    <dd>{selectedPatient.gender}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">
-                      Date of Birth
-                    </dt>
-                    <dd>
-                      {formatDate(selectedPatient.dob)} (
-                      {calculateAge(selectedPatient.dob)} years)
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">
-                      Blood Group
-                    </dt>
-                    <dd>{selectedPatient.blood_group || "Not specified"}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              <div>
-                <h4 className="font-semibold">Contact Information</h4>
-                <dl className="space-y-2 mt-2">
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Mobile</dt>
-                    <dd>{selectedPatient.mobile}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Email</dt>
-                    <dd>{selectedPatient.email || "Not specified"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">Address</dt>
-                    <dd className="whitespace-pre-wrap">
-                      {selectedPatient.address || "Not specified"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-muted-foreground">
-                      Last Visit
-                    </dt>
-                    <dd>{formatDate(selectedPatient.last_visit_date)}</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Patient Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Patient</DialogTitle>
-            <DialogDescription>
-              Update patient information for {selectedPatient?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedPatient && (
-            <PatientForm
-              patient={selectedPatient}
-              onSuccess={() => {
-                setEditDialogOpen(false);
-                fetchPatients(currentPage, searchTerm);
-              }}
-              onCancel={() => setEditDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -582,7 +464,8 @@ const handleAddNewPatient = async () => {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              patient record for {selectedPatient?.full_name}.
+              patient record for {selectedPatient?.full_name} and all associated
+              vitals records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

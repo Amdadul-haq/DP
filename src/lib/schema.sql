@@ -1,3 +1,16 @@
+
+CREATE TABLE IF NOT EXISTS patients_vitals (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER REFERENCES patients(id) ON DELETE CASCADE,
+    blood_pressure TEXT,
+    pulse TEXT,
+    weight TEXT,
+    temperature TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_patients_vitals_patient_id ON patients_vitals(patient_id);
+CREATE INDEX IF NOT EXISTS idx_patients_vitals_created_at ON patients_vitals(created_at);
 -- ==========================
 -- lib/schema.sql
 -- ==========================

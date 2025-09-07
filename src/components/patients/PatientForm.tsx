@@ -29,7 +29,7 @@ interface Patient {
 
 interface PatientFormProps {
   patient?: Patient;
-  onSuccess: () => void;
+  onSuccess: (patientData?: { id: number; name: string }) => void;
   onCancel: () => void;
 }
 
@@ -69,12 +69,18 @@ export function PatientForm({
       });
 
       if (response.ok) {
+        const data = await response.json();
         toast.success(
           patient?.id
             ? "Patient updated successfully"
             : "Patient created successfully"
         );
-        onSuccess();
+
+        // Pass patient data to onSuccess callback
+        onSuccess({
+          id: data.patient.id,
+          name: data.patient.full_name,
+        });
       } else {
         const error = await response.json();
 
@@ -82,8 +88,7 @@ export function PatientForm({
         if (response.status === 409) {
           // Duplicate mobile number error
           toast.error(error.error || "Duplicate mobile number", {
-            description:
-              "Please use a different mobile number!",
+            description: "Please use a different mobile number!",
             duration: 5000, // Show for longer
           });
         } else {

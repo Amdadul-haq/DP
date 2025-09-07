@@ -9,8 +9,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { PatientForm } from "@/components/patients/PatientForm";
+import { VitalsForm } from "@/components/patients/VitalsForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { CheckCircle } from "lucide-react";
 
 interface SubscriptionWithPlan {
   id: number;
@@ -82,7 +93,22 @@ const NewPatientPage = () => {
     setLoading(false);
   }, [router]);
 
-  const handleSuccess = () => router.push("/dashboard/patients");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [newPatientId, setNewPatientId] = useState<number | null>(null);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [newPatientName, setNewPatientName] = useState<string>("");
+
+  // Called when patient is successfully created
+  const handleSuccess = (patientData?: { id: number; name: string }) => {
+    if (patientData && patientData.id) {
+      setNewPatientId(patientData.id);
+      setNewPatientName(patientData.name || "");
+      setShowConfirm(true);
+    } else {
+      router.push("/dashboard/patients");
+    }
+  };
+
   const handleCancel = () => router.push("/dashboard/patients");
 
   if (loading)
@@ -107,9 +133,75 @@ const NewPatientPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Pass callback to onSuccess so we can show confirmation dialog */}
           <PatientForm onSuccess={handleSuccess} onCancel={handleCancel} />
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog after patient is added */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+              <DialogTitle>Patient Added Successfully</DialogTitle>
+            </div>
+            <DialogDescription>
+              Patient record for {newPatientName} has been created successfully.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground">
+              Would you like to add vitals information for this patient now?
+            </p>
+          </div>
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowConfirm(false);
+                router.push(`/dashboard/patients/${newPatientId}`);
+              }}
+            >
+              Add Later
+            </Button>
+            <Button
+              onClick={() => {
+                setShowConfirm(false);
+                setShowVitalsModal(true);
+              }}
+            >
+              Add Vitals Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Vitals Modal */}
+      <Dialog open={showVitalsModal} onOpenChange={setShowVitalsModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add Vitals for {newPatientName}</DialogTitle>
+            <DialogDescription>
+              Record the patient&apos;s current vitals measurements
+            </DialogDescription>
+          </DialogHeader>
+          {newPatientId && (
+            <VitalsForm
+              patientId={newPatientId}
+              onSuccess={() => {
+                setShowVitalsModal(false);
+                toast.success("Vitals added successfully");
+                router.push(`/dashboard/patients/${newPatientId}`);
+              }}
+              onCancel={() => {
+                setShowVitalsModal(false);
+                router.push(`/dashboard/patients/${newPatientId}`);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
