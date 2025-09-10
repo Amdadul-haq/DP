@@ -29,6 +29,7 @@ import {
   DIAGNOSIS_OPTIONS,
   HISTORY_OPTIONS,
   TESTS_OPTIONS,
+  ADVICE_OPTIONS, // Add this import
 } from "@/lib/prescription-options";
 import {
   PulseIcon,
@@ -96,6 +97,7 @@ export default function NewPrescriptionPage() {
     weight: "",
     temperature: "",
     tests: "",
+    advice: "", // Add advice field
   });
 
   const [medicines, setMedicines] = useState<Medicine[]>([
@@ -327,7 +329,8 @@ export default function NewPrescriptionPage() {
 
       if (response.ok) {
         toast.success("Prescription created successfully!");
-        router.push("/dashboard/prescriptions");
+        const data = await response.json();
+        router.push(`/dashboard/prescriptions/${data.prescriptionId}/preview`);
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to create prescription");
@@ -637,6 +640,18 @@ export default function NewPrescriptionPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
+              </div>
+              {/* Advice Section */}
+              <div className="space-y-2">
+                <HybridField
+                  label="Advice"
+                  value={form.advice}
+                  onChange={(value, option) =>
+                    handleHybridFieldChange("advice", value, option)
+                  }
+                  options={ADVICE_OPTIONS}
+                  placeholder="Add advice for the patient..."
+                />
               </div>
             </div>
           </CardContent>

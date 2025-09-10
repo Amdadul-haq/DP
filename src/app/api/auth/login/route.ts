@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
 
     // Get user with password hash and role
     const result = await pool.query(
-      'SELECT id, email, password_hash, first_name, last_name, bmdc_reg, specialty, role, doctor_id FROM users WHERE email = $1',
+      `SELECT id, email, password_hash, first_name, last_name, 
+              bmdc_reg, specialty, role, doctor_id 
+       FROM users 
+       WHERE email = $1`,
       [email]
     );
 
@@ -49,11 +52,23 @@ export async function POST(request: NextRequest) {
     // Remove password hash from response
     const { password_hash, ...userWithoutPassword } = user;
 
-    return NextResponse.json({
+    // Create response with cookie
+    const response = NextResponse.json({
       message: 'Login successful',
       user: userWithoutPassword,
       token,
     });
+
+    // Set token in cookie for server-side requests
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

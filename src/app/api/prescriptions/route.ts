@@ -1,3 +1,4 @@
+// app/api/prescriptions/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUserFromSession } from '@/lib/auth';
@@ -20,6 +21,7 @@ interface PrescriptionData {
   temperature?: string;
   tests?: string;
   next_visit_date?: string;
+  advice?: string; // Added advice field
   medicines: Medicine[];
 }
 
@@ -74,11 +76,11 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN');
 
-      // Insert prescription
+      // Insert prescription with advice field
       const prescriptionResult = await client.query(
         `INSERT INTO prescriptions 
-         (doctor_id, patient_id, diagnosis, history, cc, bp, pulse, weight, temperature, tests, next_visit_date, created_by, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'completed')
+         (doctor_id, patient_id, diagnosis, history, cc, bp, pulse, weight, temperature, tests, next_visit_date, advice, created_by, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'completed')
          RETURNING id`,
         [
           doctorId,
@@ -91,7 +93,8 @@ export async function POST(request: NextRequest) {
           prescriptionData.weight,
           prescriptionData.temperature,
           prescriptionData.tests,
-          nextVisitDate, // This can be null now
+          nextVisitDate,
+          prescriptionData.advice, // Added advice
           user.id
         ]
       );

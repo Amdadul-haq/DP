@@ -26,10 +26,6 @@ interface PrescriptionData {
   patient_age: number;
   patient_gender: string;
   patient_mobile: string;
-  doctor_first_name: string;
-  doctor_last_name: string;
-  doctor_bmdc: string;
-  doctor_specialty: string;
   medicines: Medicine[];
 }
 
@@ -60,6 +56,18 @@ export function PrescriptionHTMLTemplate({
       .filter(Boolean);
   };
 
+  // Calculate days until next visit
+  const calculateDaysUntilNextVisit = () => {
+    if (!prescription.next_visit_date) return null;
+
+    const nextVisitDate = new Date(prescription.next_visit_date);
+    const today = new Date();
+    const diffTime = nextVisitDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays;
+  };
+
   const nextVisitDate = prescription.next_visit_date
     ? new Date(prescription.next_visit_date).toLocaleDateString("en-BD", {
         year: "numeric",
@@ -67,6 +75,8 @@ export function PrescriptionHTMLTemplate({
         day: "numeric",
       })
     : "";
+
+  const daysUntilNextVisit = calculateDaysUntilNextVisit();
 
   return (
     <div
@@ -76,165 +86,170 @@ export function PrescriptionHTMLTemplate({
       style={{ minHeight: "297mm" }}
     >
       <div>
-        {/* Doctor Info */}
+        {/* Doctor Info (Static) */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">
-              ডাঃ {prescription.doctor_first_name}{" "}
-              {prescription.doctor_last_name}
+            <h3 className="text-lg font-semibold text-black">
+              ডাঃ মোঃ সালমান ফার্সি
             </h3>
-            <p className="text-sm text-gray-600">
-              {prescription.doctor_specialty} • BMDC: {prescription.doctor_bmdc}
+            <p className="text-sm">
+              সি.পি রংপুর কমিউনিটি প্যারামেডিক ইন্সটিটিউট
             </p>
+            <p className="text-sm">বি. এন. এম সি (ঢাকা)</p>
+            <p className="text-sm">জে.এ.এইচ.এস, গাজীপুর (পলিপাস)</p>
+            <p className="text-sm">এফ.টি বদরগঞ্জ উপজেলা স্বাস্থ্য কমপ্লেক্স</p>
+            <p className="text-sm">জেনারেল প্রাকটিশনার</p>
+            <p className="text-sm mt-1">মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
           </div>
           <div className="text-right">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Dr. {prescription.doctor_first_name}{" "}
-              {prescription.doctor_last_name}
+            <h3 className="text-lg font-semibold text-black">
+              Dr. Salman Farshi
             </h3>
-            <p className="text-sm text-gray-600">
-              {prescription.doctor_specialty} • BMDC: {prescription.doctor_bmdc}
-            </p>
+            <p className="text-sm">C.P Rangpur Community Paramedic Institute</p>
+            <p className="text-sm">B.N.M.C (Dhaka)</p>
+            <p className="text-sm">J.A.H.S, Gazipur (Polypus)</p>
+            <p className="text-sm">F.T Badarganj Upazila Health Complex</p>
+            <p className="text-sm">General Practitioner</p>
+            <p className="text-sm mt-1">Movile : 01318905857</p>
           </div>
         </div>
 
         {/* Patient Info */}
-        <div className="grid grid-cols-4 gap-2 border-t-2 border-b-2 border-black bg-gray-50 p-2">
-          <div className="text-gray-800">
+        <div className="grid grid-cols-4 gap-2 border-t-2 border-b-2 border-black bg-gray-100 p-2">
+          <div className="text-black">
             <span className="font-semibold">ID:</span> {prescription.patient_id}
           </div>
-          <div className="text-gray-800">
+          <div className="text-black">
             <span className="font-semibold">Name:</span>{" "}
             {prescription.patient_name}
           </div>
-          <div className="text-gray-800">
+          <div className="text-black">
             <span className="font-semibold">Age/Sex:</span>{" "}
             {prescription.patient_age}y / {prescription.patient_gender}
           </div>
-          <div className="text-gray-800">
+          <div className="text-black">
             <span className="font-semibold">Date:</span>{" "}
             {formatDate(prescription.created_at)}
           </div>
         </div>
 
-        {/* Section with Vertical Divider */}
-        <div className="relative">
-          <div className="grid grid-cols-5 gap-6 py-6 border-b-2 border-black">
+        {/* Main Content Area with Fixed Height */}
+        <div className="relative" style={{ minHeight: "calc(297mm - 280px)" }}>
+          <div className="grid grid-cols-5 gap-6 py-6 h-full">
             {/* Left Column */}
             <div className="col-span-2 space-y-4">
-              {prescription.cc && (
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Chief Complaints (CC):
-                  </h4>
+              {/* Chief Complaints - Always show title */}
+              <div>
+                <h4 className="font-semibold text-black mb-2">
+                  Chief Complaints (CC):
+                </h4>
+                {prescription.cc ? (
                   <ul className="list-disc list-inside space-y-1">
                     {splitValues(prescription.cc).map((complaint, index) => (
-                      <li key={index} className="text-gray-700">
+                      <li key={index} className="text-black">
                         {complaint}
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
-
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">
-                  On Examination:
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-gray-700">
-                  {prescription.bp && (
-                    <div>
-                      <span className="font-medium">BP:</span> {prescription.bp}
-                    </div>
-                  )}
-                  {prescription.pulse && (
-                    <div>
-                      <span className="font-medium">Pulse:</span>{" "}
-                      {prescription.pulse}
-                    </div>
-                  )}
-                  {prescription.weight && (
-                    <div>
-                      <span className="font-medium">Weight:</span>{" "}
-                      {prescription.weight} kg
-                    </div>
-                  )}
-                  {prescription.temperature && (
-                    <div>
-                      <span className="font-medium">Temp:</span>{" "}
-                      {prescription.temperature}°C
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <p className="text-black">N/A</p>
+                )}
               </div>
 
-              {prescription.diagnosis && (
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Diagnosis:
-                  </h4>
+              {/* Diagnosis - Always show title */}
+              <div>
+                <h4 className="font-semibold text-black mb-2">Diagnosis:</h4>
+                {prescription.diagnosis ? (
                   <ul className="list-disc list-inside space-y-1">
                     {splitValues(prescription.diagnosis).map((diag, index) => (
-                      <li key={index} className="text-gray-700">
+                      <li key={index} className="text-black">
                         {diag}
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
+                ) : (
+                  <p className="text-black">N/A</p>
+                )}
+              </div>
 
-              {prescription.tests && (
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Tests Recommended:
-                  </h4>
+              {/* Tests Recommended - Always show title */}
+              <div>
+                <h4 className="font-semibold text-black mb-2">
+                  Tests Recommended:
+                </h4>
+                {prescription.tests ? (
                   <ul className="list-disc list-inside space-y-1">
                     {splitValues(prescription.tests).map((test, index) => (
-                      <li key={index} className="text-gray-700">
+                      <li key={index} className="text-black">
                         {test}
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
+                ) : (
+                  <p className="text-black">N/A</p>
+                )}
+              </div>
 
-              {prescription.history && (
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Medical History:
-                  </h4>
+              {/* Medical History - Always show title */}
+              <div>
+                <h4 className="font-semibold text-black mb-2">
+                  Medical History:
+                </h4>
+                {prescription.history ? (
                   <ul className="list-disc list-inside space-y-1">
                     {splitValues(prescription.history).map((history, index) => (
-                      <li key={index} className="text-gray-700">
+                      <li key={index} className="text-black">
                         {history}
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
+                ) : (
+                  <p className="text-black">N/A</p>
+                )}
+              </div>
+
+              {/* Advice - Always show title */}
+              <div>
+                <h4 className="font-semibold text-black mb-2">Advice:</h4>
+                {prescription.advice ? (
+                  <ul className="list-disc list-inside space-y-1">
+                    {splitValues(prescription.advice).map((advice, index) => (
+                      <li key={index} className="text-black">
+                        {advice}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-black">N/A</p>
+                )}
+              </div>
             </div>
 
             {/* Right Column */}
             <div className="col-span-3">
-              <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">
-                Medicines:
+              <h4
+                className="text-3xl text-black mb-4 pb-2 pl-4"
+                style={{ fontFamily: "cursive" }}
+              >
+                Rx
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-3 pl-15">
                 {prescription.medicines.map((medicine, index) => (
-                  <div key={index} className="border-b pb-3 last:border-b-0">
-                    <div className="font-medium text-gray-800">
+                  <div
+                    key={index}
+                    className="border-b pb-3 last:border-b-0"
+                  >
+                    <div className="font-medium text-black">
                       {medicine.name}
                     </div>
-                    <div className="text-sm text-gray-600">
-                      <span>{medicine.rules}</span>
-                      {" • "}
+                    <div className="flex justify-between text-sm">
+                      <div className="flex gap-3 flex-wrap">
+                        <span>{medicine.rules}</span>
+                        {medicine.notes && (
+                          <span className="break-words">{medicine.notes}</span>
+                        )}
+                      </div>
                       <span>{medicine.days}</span>
-                      {medicine.notes && (
-                        <>
-                          {" • "}
-                          <span>{medicine.notes}</span>
-                        </>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -242,51 +257,95 @@ export function PrescriptionHTMLTemplate({
             </div>
           </div>
 
-          {/* Vertical Divider connected top (patient info) → bottom (footer line) */}
-          <div className="absolute top-0 bottom-0 left-[40%] border-l-2 border-black"></div>
-        </div>
-      </div>
+          {/* Vertical Divider - Extended to connect with footer */}
+          <div
+            className="absolute top-0 bottom-0 left-[40%] border-l-2 border-black"
+            style={{ height: "calc(100% + 2px)" }}
+          ></div>
 
-      {/* Footer */}
-      <div className="pt-4">
-        <div className="grid grid-cols-3 gap-4">
-          {prescription.advice && (
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Advice:</h4>
-              <ul className="list-disc list-inside space-y-1">
-                {splitValues(prescription.advice).map((advice, index) => (
-                  <li key={index} className="text-gray-700">
-                    {advice}
-                  </li>
-                ))}
-              </ul>
+          {/* Next Visit Section - Always show */}
+          <div className="absolute bottom-[50px] left-[42%]">
+            {prescription.next_visit_date ? (
+              <>
+                <p className="text-sm text-black">
+                  * {daysUntilNextVisit} দিন পর আবার আসবেন।
+                  <br />
+                  (পরবর্তী সাক্ষাতের সময় ব্যবস্থাপত্র সঙ্গে আনবেন)
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-black">
+                .... দিন পর আবার আসবেন ।
+                <br />
+                (পরবর্তী সাক্ষাতের সময় ব্যবস্থাপত্র সঙ্গে আনবেন)
+              </p>
+            )}
+          </div>
+
+          {/* Doctor's Signature */}
+          <div className="absolute bottom-[50px] right-0 text-right">
+            <div className="inline-block text-center">
+              <div className="h-12 border-b border-black mb-2"></div>
+              <p className="text-sm text-black">Doctor&apos;s Signature</p>
             </div>
-          )}
-
-          {prescription.next_visit_date && (
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Next Visit:</h4>
-              <p className="text-gray-700">{nextVisitDate}</p>
-            </div>
-          )}
-
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-2">
-              Chamber Information:
-            </h4>
-            <p className="text-gray-700">Please contact for appointment</p>
-            <p className="text-sm text-gray-600 mt-1">
-              Mobile: {prescription.patient_mobile}
-            </p>
           </div>
         </div>
       </div>
 
-      {/* Signature */}
-      <div className="text-right mt-8 pt-4 border-t border-gray-300">
-        <div className="inline-block text-center">
-          <div className="h-12 border-b border-gray-400 mb-2"></div>
-          <p className="text-sm text-gray-600">Doctor&apos;s Signature</p>
+      {/* Footer: 3 Chamber Info */}
+      <div className="pt-2 border-t-2 border-black mt-0">
+        <div className="grid grid-cols-3 gap-4 text-black">
+        
+          <div>
+            <h4 className="font-semibold mb-1">
+              {" "}
+              এম.এস ফার্সি ডিজিটাল হেল্থ কেয়ার সেন্টার
+            </h4>
+            <div className="text-sm">
+              <p>এন এ ফার্মেসী সংলগ্ন</p>
+              <p>শালবাড়ি বাজার, বদরগঞ্জ, রংপুর</p>
+              <p>
+                রোগী দেখার সময় : প্রতি শনিবার,রবিবার,সোমবার,বুধবার ও বৃহস্পতিবার
+                সকাল ৯:০০ টা হতে দুপুর ১২:০০ টা ও বিকাল ৪:০০ টা হতে রাত ১০:০০ টা
+                পর্যন্ত
+              </p>
+              <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
+            </div>
+          </div>
+         
+          <div>
+            <h4 className="font-semibold mb-1">
+              {" "}
+              এম.এস ফার্সি ডিজিটাল হেল্থ কেয়ার সেন্টার
+            </h4>
+            <div className="text-sm">
+              <p>এন এ ফার্মেসী সংলগ্ন</p>
+              <p>শালবাড়ি বাজার, বদরগঞ্জ, রংপুর</p>
+              <p>
+                রোগী দেখার সময় : প্রতি শনিবার,রবিবার,সোমবার,বুধবার ও বৃহস্পতিবার
+                সকাল ৯:০০ টা হতে দুপুর ১২:০০ টা ও বিকাল ৪:০০ টা হতে রাত ১০:০০ টা
+                পর্যন্ত
+              </p>
+              <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
+            </div>
+          </div>
+        
+          <div>
+            <h4 className="font-semibold mb-1">
+              {" "}
+              এম.এস ফার্সি ডিজিটাল হেল্থ কেয়ার সেন্টার
+            </h4>
+            <div className="text-sm">
+              <p>এন এ ফার্মেসী সংলগ্ন</p>
+              <p>শালবাড়ি বাজার, বদরগঞ্জ, রংপুর</p>
+              <p>
+                রোগী দেখার সময় : প্রতি শনিবার,রবিবার,সোমবার,বুধবার ও বৃহস্পতিবার
+                সকাল ৯:০০ টা হতে দুপুর ১২:০০ টা ও বিকাল ৪:০০ টা হতে রাত ১০:০০ টা
+                পর্যন্ত
+              </p>
+              <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

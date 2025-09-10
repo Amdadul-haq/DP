@@ -139,3 +139,24 @@
 [data-sonner-toast][data-type="error"] {
   border-color: oklch(0.704 0.191 22.216) !important;
 }
+
+/* Add to your globals.css */
+@media print {
+  @page {
+    margin: 0;
+    size: A4 portrait;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+}

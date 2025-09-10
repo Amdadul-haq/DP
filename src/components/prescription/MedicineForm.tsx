@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, X, Plus } from "lucide-react";
 import { HybridInput } from "./HybridInput";
-import { FEEDING_RULES, FEEDING_DAYS } from "@/lib/prescription-options";
+import { HybridField } from "./HybridField";
+import { FEEDING_RULES, FEEDING_DAYS,NOTES_OPTIONS } from "@/lib/prescription-options";
+import { getDosageShortcut } from "@/lib/dosage-shortcut";
 
 interface Medicine {
   name: string;
@@ -78,12 +80,16 @@ export function MedicineForm({
   };
 
   const handleMedicineSelect = (medicineData: MedicineSearchResult) => {
-    const displayName = `${medicineData.brand_name}${
-      medicineData.strength ? ` ${medicineData.strength}` : ""
-    } (${medicineData.dosage_form})`;
-    onUpdate(index, "name", displayName);
-    setLocalSearch(displayName);
-    onClearResults();
+
+  const dosageShort = getDosageShortcut(medicineData.dosage_form);
+
+  const displayName = `${dosageShort} ${medicineData.brand_name}${
+    medicineData.strength ? ` ${medicineData.strength}` : ""
+  }`;
+
+  onUpdate(index, "name", displayName);
+  setLocalSearch(displayName);
+  onClearResults();
   };
 
   const handleClearMedicine = () => {
@@ -136,14 +142,10 @@ export function MedicineForm({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">
                     {med.brand_name}
-                    {med.strength && (
-                      <span className="text-muted-foreground ml-1">
-                        ({med.strength})
-                      </span>
-                    )}
+                    {med.strength ? ` - ${med.strength}` : ""}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {med.generic} • {med.dosage_form}
+                    {med.generic}
                   </p>
                 </div>
                 <Badge variant="outline" className="text-xs">
@@ -177,14 +179,14 @@ export function MedicineForm({
         />
       </div>
 
-      {/* Notes */}
-      <div className="md:col-span-2 space-y-2">
-        <Label className="text-base">Notes</Label>
-        <Input
+      {/* Notes - HybridInput */}
+      <div className="md:col-span-3 space-y-2">
+        <HybridInput
+          label="Notes"
           value={medicine.notes || ""}
-          onChange={(e) => onUpdate(index, "notes", e.target.value)}
-          placeholder="Additional notes"
-          className="text-base h-12"
+          onChange={(value) => onUpdate(index, "notes", value)}
+          options={NOTES_OPTIONS}
+          placeholder="Add notes or select from options"
         />
       </div>
 
