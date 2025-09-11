@@ -56,12 +56,8 @@ export function PatientForm({
   );
 
   const validateAge = (value: number): string | null => {
-    if (value <= 0) {
-      return "Age cannot be negative or zero";
-    }
-    if (value > 150) {
-      return "Age cannot be greater than 150";
-    }
+    if (value <= 0) return "Age cannot be negative or zero";
+    if (value > 150) return "Age cannot be greater than 150";
     return null;
   };
 
@@ -84,12 +80,7 @@ export function PatientForm({
 
     const error = validateAge(numericValue);
     setAgeError(error);
-
-    if (!error) {
-      setFormData((prev) => ({ ...prev, age: numericValue }));
-    } else {
-      setFormData((prev) => ({ ...prev, age: numericValue }));
-    }
+    setFormData((prev) => ({ ...prev, age: numericValue }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,7 +128,6 @@ export function PatientForm({
         });
       } else {
         const error = await response.json();
-
         if (response.status === 409) {
           toast.error(error.error || "Duplicate mobile number", {
             description: "Please use a different mobile number!",
@@ -161,7 +151,7 @@ export function PatientForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pb-20 md:pb-0">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* Personal Information Section */}
       <div className="bg-muted/30 rounded-lg p-4">
         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -171,30 +161,25 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="full_name" className="text-sm font-medium">
-              Full Name *
-            </Label>
+            <Label htmlFor="full_name">Full Name *</Label>
             <Input
               id="full_name"
               value={formData.full_name}
               onChange={(e) => handleChange("full_name", e.target.value)}
               required
-              className="h-12 text-base"
               placeholder="Enter patient's full name"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="gender" className="text-sm font-medium">
-              Gender *
-            </Label>
+            <Label htmlFor="gender">Gender *</Label>
             <Select
               value={formData.gender}
               onValueChange={(value: "Male" | "Female" | "Other") =>
                 handleChange("gender", value)
               }
             >
-              <SelectTrigger className="h-12 text-base">
+              <SelectTrigger>
                 <SelectValue placeholder="Select gender" />
               </SelectTrigger>
               <SelectContent>
@@ -208,9 +193,7 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="age" className="text-sm font-medium">
-              Age *
-            </Label>
+            <Label htmlFor="age">Age *</Label>
             <Input
               id="age"
               type="number"
@@ -220,9 +203,7 @@ export function PatientForm({
               value={ageInput}
               onChange={(e) => handleAgeChange(e.target.value)}
               required
-              className={`h-12 text-base ${
-                ageError ? "border-destructive" : ""
-              }`}
+              className={ageError ? "border-destructive" : ""}
             />
             {ageError && (
               <p className="text-sm text-destructive mt-1">{ageError}</p>
@@ -230,21 +211,16 @@ export function PatientForm({
           </div>
 
           <div className="space-y-2">
-            <Label
-              htmlFor="mobile"
-              className="text-sm font-medium flex items-center gap-1"
-            >
+            <Label htmlFor="mobile" className="flex items-center gap-1">
               <Phone className="h-4 w-4" />
               Mobile Number *
             </Label>
             <Input
               id="mobile"
               type="tel"
-              inputMode="tel"
               value={formData.mobile}
               onChange={(e) => handleChange("mobile", e.target.value)}
               required
-              className="h-12 text-base"
               placeholder="01XXXXXXXXX"
             />
           </div>
@@ -260,29 +236,21 @@ export function PatientForm({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label
-              htmlFor="email"
-              className="text-sm font-medium flex items-center gap-1"
-            >
+            <Label htmlFor="email" className="flex items-center gap-1">
               <Mail className="h-4 w-4" />
               Email
             </Label>
             <Input
               id="email"
               type="email"
-              inputMode="email"
               value={formData.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              className="h-12 text-base"
               placeholder="patient@example.com"
             />
           </div>
 
           <div className="space-y-2">
-            <Label
-              htmlFor="blood_group"
-              className="text-sm font-medium flex items-center gap-1"
-            >
+            <Label htmlFor="blood_group" className="flex items-center gap-1">
               <Droplets className="h-4 w-4" />
               Blood Group
             </Label>
@@ -290,7 +258,7 @@ export function PatientForm({
               value={formData.blood_group}
               onValueChange={(value) => handleChange("blood_group", value)}
             >
-              <SelectTrigger className="h-12 text-base">
+              <SelectTrigger>
                 <SelectValue placeholder="Select blood group" />
               </SelectTrigger>
               <SelectContent>
@@ -308,10 +276,7 @@ export function PatientForm({
         </div>
 
         <div className="mt-4 space-y-2">
-          <Label
-            htmlFor="address"
-            className="text-sm font-medium flex items-center gap-1"
-          >
+          <Label htmlFor="address" className="flex items-center gap-1">
             <MapPin className="h-4 w-4" />
             Address
           </Label>
@@ -320,16 +285,12 @@ export function PatientForm({
             value={formData.address}
             onChange={(e) => handleChange("address", e.target.value)}
             rows={3}
-            className="text-base min-h-[100px]"
             placeholder="Enter full address"
           />
         </div>
 
         <div className="mt-4 space-y-2">
-          <Label
-            htmlFor="last_visit_date"
-            className="text-sm font-medium flex items-center gap-1"
-          >
+          <Label htmlFor="last_visit_date" className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             Last Visit Date
           </Label>
@@ -338,45 +299,37 @@ export function PatientForm({
             type="date"
             value={formData.last_visit_date}
             onChange={(e) => handleChange("last_visit_date", e.target.value)}
-            className="h-12 text-base"
           />
         </div>
       </div>
 
-      {/* Action Buttons - Large sticky footer for mobile */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-2xl p-4 md:static md:bg-transparent md:border-t-0 md:shadow-none md:p-0">
-        <div className="flex flex-col-reverse md:flex-row gap-3 md:justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            className="h-14 text-base font-semibold md:h-12"
-            size="lg"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading || !!ageError || formData.age <= 0}
-            className="h-14 text-base font-semibold md:h-12"
-            size="lg"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-                {patient?.id ? "Updating..." : "Creating..."}
-              </span>
-            ) : patient?.id ? (
-              "Update Patient"
-            ) : (
-              "Create Patient"
-            )}
-          </Button>
-        </div>
+      {/* Action Buttons (Dialog friendly) */}
+      <div className="mt-6 flex flex-col-reverse md:flex-row gap-3 md:justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          className="h-12 text-base font-semibold"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={loading || !!ageError || formData.age <= 0}
+          className="h-12 text-base font-semibold"
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
+              {patient?.id ? "Updating..." : "Creating..."}
+            </span>
+          ) : patient?.id ? (
+            "Update Patient"
+          ) : (
+            "Create Patient"
+          )}
+        </Button>
       </div>
-
-      {/* Spacer to prevent content from being hidden behind sticky footer */}
-      <div className="h-20 md:h-0"></div>
     </form>
   );
 }

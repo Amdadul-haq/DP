@@ -7,3 +7,11 @@ const pool = new Pool({
 });
 
 export default pool;
+// import { Pool } from "pg";
+
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: false, // লোকালে SSL use করব না
+// });
+
+// export default pool;
