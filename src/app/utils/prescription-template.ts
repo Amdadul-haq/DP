@@ -815,6 +815,10 @@ return `
             border-left: 2px solid #000;
            // height: calc(100% + 2px); /* Extend to footer top border */
           }
+          .dummy-block {
+            visibility: hidden;
+           }
+
         </style>
       </head>
       <body>
@@ -823,7 +827,7 @@ return `
           <div class="content-area">
         
             <!-- Doctor Info (Static) -->
-            <div class="flex justify-between items-center mb-4 bengali-font">
+            <div class="flex justify-between items-center mb-4 bengali-font dummy-block">
               <div>
                 <h3 class="text-lg font-semibold text-black">ডাঃ মোঃ সালমান ফার্সি</h3>
                 <p class="text-xs">সি.পি রংপুর কমিউনিটি প্যারামেডিক ইন্সটিটিটিউট</p>
@@ -937,7 +941,7 @@ return `
           </div>
 
           <!-- Footer: 3 Chamber Info -->
-          <div class="footer-area pt-1 border-t-2 border-black mt-2 bengali-font">
+          <div class="footer-area pt-1 border-t-2 border-black mt-2 bengali-font dummy-block">
             <div class="grid grid-cols-3 gap-3 text-black">
               <div>
                 <h4 class="font-semibold mb-1 text-xs">এম.এস ফার্সি ডিজিটাল হেল্থ কেয়ার সেন্টার</h4>
