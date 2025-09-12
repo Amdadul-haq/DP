@@ -810,7 +810,7 @@ return `
           .divider-full {
             position: absolute;
             top: 210px;
-            bottom: 170px;
+            bottom: 158px;
             left: 40%;
             border-left: 2px solid #000;
            // height: calc(100% + 2px); /* Extend to footer top border */
