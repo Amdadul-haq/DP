@@ -92,6 +92,17 @@ import puppeteer from 'puppeteer-core';
 import { verifyJWT } from '@/lib/auth';
 import { generatePrescriptionHTML } from '@/app/utils/prescription-template';
 
+// Correct type definition based on the actual export
+interface ChromiumModule {
+  default: {
+    args: string[];
+    executablePath(): Promise<string>;
+    headless: boolean;
+  };
+  executablePath?: () => Promise<string>;
+  args?: string[];
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -108,7 +119,7 @@ export async function GET(
     
     try {
       await verifyJWT(token);
-    } catch (error) {
+    } catch {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
@@ -129,24 +140,34 @@ export async function GET(
     let browser;
     
     if (process.env.NODE_ENV === 'production') {
-      // For production - use @sparticuz/chromium
-      const chromium = await import('@sparticuz/chromium');
-      
-      // Use type assertion to handle the chromium import
-      const chromiumAny = chromium as any;
-      
-      const executablePath = await chromiumAny.executablePath();
-      
-      browser = await puppeteer.launch({
-        args: chromiumAny.args || [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu'
-        ],
-        executablePath,
-        headless: true, // Use boolean true instead of "new"
-      });
+      try {
+        // Import the chromium module
+        const chromiumModule = await import('@sparticuz/chromium');
+        
+        // Get the executable path from the default export
+        const executablePath = await chromiumModule.default.executablePath();
+        const args = chromiumModule.default.args;
+        
+        browser = await puppeteer.launch({
+          args: args || [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process',
+            '--no-zygote'
+          ],
+          executablePath,
+          headless: true,
+        });
+        
+      } catch {
+        // Fallback: try without specific executable path
+        browser = await puppeteer.launch({
+          args: ['--no-sandbox', '--disable-setuid-sandbox'],
+          headless: true,
+        });
+      }
     } else {
       // For development - use regular puppeteer
       const devPuppeteer = await import('puppeteer');
@@ -160,7 +181,7 @@ export async function GET(
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
     const pdfBuffer = await page.pdf({
-      format: 'A4',
+      format: 'a4',
       printBackground: true,
     });
     
@@ -175,8 +196,7 @@ export async function GET(
       },
     });
 
-  } catch (error) {
-    console.error('PDF generation error:', error);
+  } catch {
     return new NextResponse('Failed to generate PDF', { status: 500 });
   }
 }

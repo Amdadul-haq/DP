@@ -1,11 +1,9 @@
 {
     "functions": {
-        "app/api/prescriptions/[id]/pdf/route.ts": {
+        "src/app/api/prescriptions/[id]/pdf/route.ts": {
             "maxDuration": 30,
             "memory": 3008,
-            "includeFiles": [
-                "node_modules/@sparticuz/chromium/**"
-            ]
+            "includeFiles": "node_modules/chrome-aws-lambda/**"
         }
     },
     "installCommand": "npm install"
