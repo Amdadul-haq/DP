@@ -941,8 +941,8 @@ return `
           </div>
 
           <!-- Footer: 3 Chamber Info -->
-          <div class="footer-area pt-1 border-t-2 border-black mt-2 bengali-font dummy-block">
-            <div class="grid grid-cols-3 gap-3 text-black">
+          <div class="footer-area pt-1 border-t-2 border-black mt-2 bengali-font">
+            <div class="grid grid-cols-3 gap-3 text-black dummy-block">
               <div>
                 <h4 class="font-semibold mb-1 text-xs">এম.এস ফার্সি ডিজিটাল হেল্থ কেয়ার সেন্টার</h4>
                 <div class="text-xs">
