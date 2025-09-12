@@ -1,8 +1,12 @@
 {
     "functions": {
-        "src/app/api/prescriptions/[id]/pdf/route.ts": {
+        "app/api/prescriptions/[id]/pdf/route.ts": {
             "maxDuration": 30,
-            "memory": 3008
+            "memory": 3008,
+            "includeFiles": [
+                "node_modules/@sparticuz/chromium/**"
+            ]
         }
-    }
+    },
+    "installCommand": "npm install"
 }
