@@ -240,24 +240,24 @@ export async function GET(
     const { prescription } = await prescriptionResponse.json();
     const htmlContent = generatePrescriptionHTML(prescription);
 
-    // 🔥 launch browser with correct config
+    // Launch browser with correct config
     const browser = await getBrowser();
     const page = await browser.newPage();
     
     // Set the content and wait for fonts to load
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
-    // Wait for fonts to be loaded
+    // Wait for fonts to be loaded - CRITICAL for Bengali font rendering
     await page.evaluateHandle('document.fonts.ready');
 
     const pdfBuffer = await page.pdf({
       format: "a4",
       printBackground: true,
       margin: {
-        top: "10mm",
-        right: "10mm",
-        bottom: "10mm",
-        left: "10mm",
+        top: "3mm",
+        right: "3mm",
+        bottom: "3mm",
+        left: "3mm",
       },
     });
 

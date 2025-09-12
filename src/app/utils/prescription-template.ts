@@ -589,7 +589,7 @@ return `
         <meta charset="utf-8">
         <title>Prescription - ${prescription.patient_name}</title>
         <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
           @media print {
             .print\\:shadow-none {
@@ -604,7 +604,7 @@ return `
             }
           }
           body {
-            font-family: 'Hind Siliguri', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            font-family: 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             margin: 0;
             padding: 0;
             background: white;
@@ -613,7 +613,7 @@ return `
             font-size: 14px;
           }
           .bengali-font {
-            font-family: 'Hind Siliguri', sans-serif;
+            font-family: 'Noto Sans Bengali', sans-serif;
           }
           .bg-white {
             background-color: #fff;
@@ -779,7 +779,7 @@ return `
             margin-top: 0;
           }
           .cursive {
-            font-family: cursive, 'Hind Siliguri', sans-serif;
+            font-family: cursive, 'Noto Sans Bengali', sans-serif;
           }
           .prescription-container {
             height: 100vh;
@@ -840,7 +840,7 @@ return `
                 <p class="text-xs">J.A.H.S, Gazipur (Polypus)</p>
                 <p class="text-xs">F.T Badarganj Upazila Health Complex</p>
                 <p class="text-xs">General Practitioner</p>
-                <p class="text-xs mt-1">Movile : 01318905857</p>
+                <p class="text-xs mt-1">Mobile : 01318905857</p>
               </div>
             </div>
 
@@ -942,7 +942,7 @@ return `
               <div>
                 <h4 class="font-semibold mb-1 text-xs">এম.এস ফার্সি ডিজিটাল হেল্থ কেয়ার সেন্টার</h4>
                 <div class="text-xs">
-                  <p>এন এ फার্মেসী সংলগ্ন</p>
+                  <p>এন এ ফার্মেসী সংলগ্ন</p>
                   <p>শালবাড়ি বাজার, বদরগঞ্জ, রংপুর</p>
                   <p>রোগী দেখার সময় : প্রতি শনিবার,রবিবার,সোমবার,বুধবার ও বৃহস্পতিবার সকাল ৯:০০ টা হতে দুপুর ১২:০০ টা ও বিকাল ৪:০০ টা হতে রাত ১০:০০ টা পর্যন্ত</p>
                   <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
