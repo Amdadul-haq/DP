@@ -254,10 +254,10 @@ export async function GET(
       format: "a4",
       printBackground: true,
       margin: {
-        top: "3mm",
-        right: "3mm",
-        bottom: "3mm",
-        left: "3mm",
+        top: "2mm",
+        right: "2mm",
+        bottom: "2mm",
+        left: "2mm",
       },
     });
 
