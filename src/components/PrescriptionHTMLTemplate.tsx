@@ -80,14 +80,14 @@ export function PrescriptionHTMLTemplate({
 
   return (
     <div
-      className={`bg-white p-4 rounded-lg flex flex-col justify-between ${
+      className={`bg-white p-4 rounded-lg  flex flex-col justify-between ${
         isForPDF ? "" : "shadow-lg print:shadow-none print:border-0"
       }`}
       style={{ minHeight: "297mm" }}
     >
       <div>
         {/* Doctor Info (Static) */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between invisible items-center mb-6">
           <div>
             <h3 className="text-lg font-semibold text-black">
               ডাঃ মোঃ সালমান ফার্সি
@@ -294,7 +294,7 @@ export function PrescriptionHTMLTemplate({
 
       {/* Footer: 3 Chamber Info */}
       <div className="pt-2 border-t-2 border-black mt-0">
-        <div className="grid grid-cols-3 gap-4 text-black">
+        <div className="grid grid-cols-3 invisible gap-4 text-black">
         
           <div>
             <h4 className="font-semibold mb-1">
