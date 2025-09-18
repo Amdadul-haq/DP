@@ -10,7 +10,7 @@ import { PrescriptionHTMLTemplate } from "@/components/PrescriptionHTMLTemplate"
 
 interface Prescription {
   id: number;
-  patient_id: number;
+  patient_number: number;
   diagnosis: string;
   history: string;
   cc: string;

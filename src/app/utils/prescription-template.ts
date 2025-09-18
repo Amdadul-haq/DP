@@ -495,6 +495,7 @@ interface Medicine {
 interface PrescriptionData {
   id: number;
   patient_id: number;
+  patient_number: number;
   diagnosis: string;
   history: string;
   cc: string;
@@ -851,7 +852,7 @@ return `
             <!-- Patient Info -->
             <div class="grid grid-cols-4 gap-2 border-t-2 border-b-2 border-black bg-gray-100 p-2">
               <div class="text-black text-xs">
-                <span class="font-semibold">ID:</span> ${prescription.patient_id}
+                <span class="font-semibold">ID:</span> ${prescription.patient_number}
               </div>
               <div class="text-black text-xs">
                 <span class="font-semibold">Name:</span> ${prescription.patient_name}

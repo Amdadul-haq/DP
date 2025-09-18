@@ -1,3 +1,4 @@
+// app/api/patients/search/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUserFromSession } from '@/lib/auth';
@@ -17,10 +18,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const patientId = searchParams.get('id');
+    const patientNumber = searchParams.get('number');
 
-    if (!patientId) {
-      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
+    if (!patientNumber) {
+      return NextResponse.json({ error: 'Patient number is required' }, { status: 400 });
     }
 
     // If assistant, get doctor_id
@@ -29,28 +30,29 @@ export async function GET(request: NextRequest) {
       doctorId = user.doctor_id;
     }
 
-    // Get patient details
+    // Get patient details by patient_number
     const patientResult = await pool.query(
-      `SELECT id, full_name, gender, age, mobile, email, blood_group, address, last_visit_date
-       FROM patients WHERE id = $1 AND doctor_id = $2`,
-      [patientId, doctorId]
+      `SELECT id, patient_number, full_name, gender, age, mobile, email, blood_group, address, last_visit_date
+       FROM patients WHERE patient_number = $1 AND doctor_id = $2`,
+      [patientNumber, doctorId]
     );
 
     if (patientResult.rows.length === 0) {
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
 
-    // Get latest vitals
+    const patient = patientResult.rows[0];
+
+    // Get latest vitals using internal ID
     const vitalsResult = await pool.query(
       `SELECT blood_pressure, pulse, weight, temperature, created_at
        FROM patients_vitals 
        WHERE patient_id = $1 
        ORDER BY created_at DESC 
        LIMIT 1`,
-      [patientId]
+      [patient.id] // Use internal ID for vitals lookup
     );
 
-    const patient = patientResult.rows[0];
     const vitals = vitalsResult.rows[0] || {};
 
     return NextResponse.json({

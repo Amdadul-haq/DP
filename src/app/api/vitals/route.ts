@@ -1,10 +1,10 @@
-// app/api/vitals/route.ts
+// app/api/vitals/route.ts - UPDATED
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getUserFromSession } from '@/lib/auth';
 
 interface VitalsData {
-  patient_id: number;
+  patient_number: number; // CHANGED: from patient_id to patient_number
   blood_pressure?: string;
   pulse?: string;
   weight?: string;
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     const vitalsData: VitalsData = await request.json();
 
     // Validate required fields
-    if (!vitalsData.patient_id) {
+    if (!vitalsData.patient_number) {
       return NextResponse.json(
-        { error: 'Patient ID is required' },
+        { error: 'Patient number is required' },
         { status: 400 }
       );
     }
@@ -41,9 +41,10 @@ export async function POST(request: NextRequest) {
       doctorId = user.doctor_id;
     }
 
+    // CHANGED: Get patient by patient_number instead of internal ID
     const patientCheck = await pool.query(
-      'SELECT id FROM patients WHERE id = $1 AND doctor_id = $2',
-      [vitalsData.patient_id, doctorId]
+      'SELECT id FROM patients WHERE patient_number = $1 AND doctor_id = $2',
+      [vitalsData.patient_number, doctorId]
     );
 
     if (patientCheck.rows.length === 0) {
@@ -53,13 +54,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const patientId = patientCheck.rows[0].id;
+
     const result = await pool.query(
       `INSERT INTO patients_vitals 
        (patient_id, blood_pressure, pulse, weight, temperature)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
       [
-        vitalsData.patient_id,
+        patientId, // Use internal ID for the foreign key relationship
         vitalsData.blood_pressure,
         vitalsData.pulse,
         vitalsData.weight,
@@ -93,11 +96,11 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const patientId = searchParams.get('patient_id');
+    const patientNumber = searchParams.get('patient_number'); // CHANGED: from patient_id to patient_number
 
-    if (!patientId) {
+    if (!patientNumber) {
       return NextResponse.json(
-        { error: 'Patient ID is required' },
+        { error: 'Patient number is required' },
         { status: 400 }
       );
     }
@@ -108,9 +111,10 @@ export async function GET(request: NextRequest) {
       doctorId = user.doctor_id;
     }
 
+    // CHANGED: Get patient by patient_number instead of internal ID
     const patientCheck = await pool.query(
-      'SELECT id FROM patients WHERE id = $1 AND doctor_id = $2',
-      [patientId, doctorId]
+      'SELECT id FROM patients WHERE patient_number = $1 AND doctor_id = $2',
+      [patientNumber, doctorId]
     );
 
     if (patientCheck.rows.length === 0) {
@@ -119,6 +123,8 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    const patientId = patientCheck.rows[0].id;
 
     const result = await pool.query(
       `SELECT * FROM patients_vitals 

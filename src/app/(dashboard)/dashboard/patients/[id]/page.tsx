@@ -43,6 +43,7 @@ import { toast } from "sonner";
 
 interface Patient {
   id: number;
+  patient_number: number;
   full_name: string;
   gender: "Male" | "Female" | "Other";
   age: number;
@@ -67,7 +68,7 @@ interface Vitals {
 export default function PatientDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const patientId = params.id as string;
+  const patient_number = params.id as string;
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [vitals, setVitals] = useState<Vitals[]>([]);
@@ -78,13 +79,17 @@ export default function PatientDetailsPage() {
 
   useEffect(() => {
     fetchPatient();
-    fetchVitals();
-  }, [patientId]);
+  }, [patient_number]);
+  useEffect(() => {
+    if (patient) {
+      fetchVitals();
+    }
+  }, [patient]);
 
   const fetchPatient = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/patients/${patientId}`, {
+      const response = await fetch(`/api/patients/${patient_number}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -99,31 +104,40 @@ export default function PatientDetailsPage() {
     }
   };
 
-  const fetchVitals = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/vitals?patient_id=${patientId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+ const fetchVitals = async () => {
+   try {
+     const token = localStorage.getItem("token");
 
-      if (response.ok) {
-        const data = await response.json();
-        setVitals(data.vitals);
-      }
-    } catch (error) {
-      console.error("Failed to fetch vitals:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+     if (patient) {
+       // CHANGED: Use patient_number instead of patient.id
+       const response = await fetch(
+         `/api/vitals?patient_number=${patient.patient_number}`,
+         {
+           headers: { Authorization: `Bearer ${token}` },
+         }
+       );
+
+       if (response.ok) {
+         const data = await response.json();
+         setVitals(data.vitals);
+       } else {
+         console.error("Failed to fetch vitals");
+       }
+     }
+   } catch (error) {
+     console.error("Failed to fetch vitals:", error);
+   } finally {
+     setLoading(false);
+   }
+ };
 
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/patients/${patientId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+   const response = await fetch(`/api/patients/${patient_number}`, {
+     method: "DELETE",
+     headers: { Authorization: `Bearer ${token}` },
+   });
 
       if (response.ok) {
         toast.success("Patient deleted successfully");
@@ -165,7 +179,7 @@ export default function PatientDetailsPage() {
             {patient.full_name}
           </h2>
           <p className="text-muted-foreground">
-            Patient ID: {patient.id} | Age: {patient.age} years
+            Patient ID: {patient.patient_number} | Age: {patient.age} years
           </p>
         </div>
         <div className="flex gap-2">

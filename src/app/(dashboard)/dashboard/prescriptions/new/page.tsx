@@ -47,6 +47,7 @@ import {
 
 interface Patient {
   id: number;
+  patient_number: number;
   full_name: string;
   gender: string;
   age: number;
@@ -168,7 +169,7 @@ export default function NewPrescriptionPage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `/api/patients/search?id=${patientId.trim()}`,
+        `/api/patients/search?number=${patientId.trim()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -178,6 +179,7 @@ export default function NewPrescriptionPage() {
         const data = await response.json();
         setPatient(data.patient);
         setVitals(data.vitals || {});
+        setPatientId(data.patient.patient_number.toString()); // ← This is the key fix
 
         // Auto-fill vitals if available
         if (data.vitals) {

@@ -92,6 +92,7 @@ CREATE TYPE gender_enum AS ENUM ('Male', 'Female', 'Other');
 CREATE TABLE IF NOT EXISTS patients (
     id SERIAL PRIMARY KEY,
     doctor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    patient_number INTEGER NOT NULL, -- Per-doctor patient number
     full_name TEXT NOT NULL,
     gender gender_enum NOT NULL,
     age INTEGER NOT NULL CHECK (age >= 0 AND age <= 150),
@@ -102,12 +103,31 @@ CREATE TABLE IF NOT EXISTS patients (
     last_visit_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(doctor_id, mobile)
+    UNIQUE(doctor_id, mobile),
+    UNIQUE(doctor_id, patient_number) -- Ensure unique patient numbers per doctor
 );
 
 CREATE INDEX idx_patients_doctor_id ON patients(doctor_id);
 CREATE INDEX idx_patients_full_name ON patients(full_name);
 CREATE INDEX idx_patients_mobile ON patients(mobile);
+CREATE INDEX idx_patients_doctor_patient_number ON patients(doctor_id, patient_number);
+
+-- ==========================
+-- 7) Function to get next patient number for a doctor
+-- ==========================
+CREATE OR REPLACE FUNCTION get_next_patient_number(doctor_id_param INT)
+RETURNS INT AS $$
+DECLARE
+    next_number INT;
+BEGIN
+    SELECT COALESCE(MAX(patient_number), 0) + 1 
+    INTO next_number 
+    FROM patients 
+    WHERE doctor_id = doctor_id_param;
+    
+    RETURN next_number;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ==========================
 -- 7) Prescriptions table
