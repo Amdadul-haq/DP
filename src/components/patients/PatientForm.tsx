@@ -1,4 +1,3 @@
-// components/patients/PatientForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,6 +17,7 @@ import { User, Phone, Mail, Droplets, MapPin, Calendar } from "lucide-react";
 
 interface Patient {
   id?: number;
+  patient_number?: number; // ADDED: patient_number field
   full_name: string;
   gender: "Male" | "Female" | "Other";
   age: number;
@@ -30,7 +30,12 @@ interface Patient {
 
 interface PatientFormProps {
   patient?: Patient;
-  onSuccess: (patientData?: { id: number; name: string }) => void;
+  // UPDATED: onSuccess callback to include patient_number
+  onSuccess: (patientData?: {
+    id: number;
+    patient_number: number;
+    name: string;
+  }) => void;
   onCancel: () => void;
 }
 
@@ -102,8 +107,11 @@ export function PatientForm({
 
     try {
       const token = localStorage.getItem("token");
-      const url = patient?.id ? `/api/patients/${patient.id}` : "/api/patients";
-      const method = patient?.id ? "PUT" : "POST";
+      // UPDATED: Use patient_number for existing patients
+      const url = patient?.patient_number
+        ? `/api/patients/${patient.patient_number}`
+        : "/api/patients";
+      const method = patient?.patient_number ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
@@ -117,13 +125,15 @@ export function PatientForm({
       if (response.ok) {
         const data = await response.json();
         toast.success(
-          patient?.id
+          patient?.patient_number
             ? "Patient updated successfully"
             : "Patient created successfully"
         );
 
+        // UPDATED: Pass patient_number to onSuccess callback
         onSuccess({
           id: data.patient.id,
+          patient_number: data.patient.patient_number,
           name: data.patient.full_name,
         });
       } else {
@@ -321,9 +331,9 @@ export function PatientForm({
           {loading ? (
             <span className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
-              {patient?.id ? "Updating..." : "Creating..."}
+              {patient?.patient_number ? "Updating..." : "Creating..."}
             </span>
-          ) : patient?.id ? (
+          ) : patient?.patient_number ? (
             "Update Patient"
           ) : (
             "Create Patient"

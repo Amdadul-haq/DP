@@ -12,7 +12,8 @@ interface PatientData {
   blood_group?: string;
   address?: string;
   last_visit_date?: string;
-}
+} 
+
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +35,7 @@ export async function GET(
     }
 
     if (!resolvedParams.id) {
-      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Patient number is required' }, { status: 400 });
     }
 
     // If assistant, get doctor_id
@@ -43,8 +44,10 @@ export async function GET(
       doctorId = user.doctor_id;
     }
 
+    // CHANGED: Query by patient_number instead of internal ID
     const result = await pool.query(
-      `SELECT * FROM patients WHERE id = $1 AND doctor_id = $2`,
+      `SELECT id, patient_number, full_name, gender, age, mobile, email, blood_group, address, last_visit_date, created_at
+       FROM patients WHERE patient_number = $1 AND doctor_id = $2`,
       [resolvedParams.id, doctorId]
     );
 
@@ -83,7 +86,7 @@ export async function PUT(
     }
 
     if (!resolvedParams.id) {
-      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Patient number is required' }, { status: 400 });
     }
 
     const patientData: PatientData = await request.json();
@@ -105,12 +108,13 @@ export async function PUT(
       doctorId = user.doctor_id;
     }
 
+    // CHANGED: Update by patient_number instead of internal ID
     const result = await pool.query(
       `UPDATE patients 
        SET full_name = $1, gender = $2, age = $3, mobile = $4, email = $5, 
            blood_group = $6, address = $7, last_visit_date = $8, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $9 AND doctor_id = $10
-       RETURNING *`,
+       WHERE patient_number = $9 AND doctor_id = $10
+       RETURNING id, patient_number, full_name, gender, age, mobile, email, blood_group, address, last_visit_date, created_at`,
       [
         patientData.full_name,
         patientData.gender,
@@ -171,7 +175,7 @@ export async function DELETE(
     }
 
     if (!resolvedParams.id) {
-      return NextResponse.json({ error: 'Patient ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Patient number is required' }, { status: 400 });
     }
 
     // If assistant, get doctor_id
@@ -180,8 +184,9 @@ export async function DELETE(
       doctorId = user.doctor_id;
     }
 
+    // CHANGED: Delete by patient_number instead of internal ID
     const result = await pool.query(
-      `DELETE FROM patients WHERE id = $1 AND doctor_id = $2 RETURNING id`,
+      `DELETE FROM patients WHERE patient_number = $1 AND doctor_id = $2 RETURNING id`,
       [resolvedParams.id, doctorId]
     );
 

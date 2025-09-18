@@ -29,7 +29,7 @@ import {
   DIAGNOSIS_OPTIONS,
   HISTORY_OPTIONS,
   TESTS_OPTIONS,
-  ADVICE_OPTIONS, // Add this import
+  ADVICE_OPTIONS,
 } from "@/lib/prescription-options";
 import {
   PulseIcon,
@@ -47,6 +47,7 @@ import {
 
 interface Patient {
   id: number;
+  patient_number: number;
   full_name: string;
   gender: string;
   age: number;
@@ -79,6 +80,26 @@ interface MedicineSearchResult {
   manufacturer: string;
 }
 
+interface PreviousPrescription {
+  id: number;
+  patient_number: number;
+  diagnosis: string;
+  history: string;
+  cc: string;
+  bp: string;
+  pulse: string;
+  weight: string;
+  temperature: string;
+  tests: string;
+  advice: string;
+  next_visit_date: string;
+  patient_name: string;
+  patient_age: number;
+  patient_gender: string;
+  patient_mobile: string;
+  medicines: Medicine[];
+}
+
 export default function NewPrescriptionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -87,6 +108,7 @@ export default function NewPrescriptionPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [vitals, setVitals] = useState<Vitals | null>(null);
   const [nextVisitDate, setNextVisitDate] = useState<Date>();
+  const [hasSearchedPatient, setHasSearchedPatient] = useState(false); // Add this state
 
   const [form, setForm] = useState({
     diagnosis: "",
@@ -97,7 +119,7 @@ export default function NewPrescriptionPage() {
     weight: "",
     temperature: "",
     tests: "",
-    advice: "", // Add advice field
+    advice: "",
   });
 
   const [medicines, setMedicines] = useState<Medicine[]>([
@@ -111,6 +133,61 @@ export default function NewPrescriptionPage() {
   const [activeMedicineIndex, setActiveMedicineIndex] = useState<number | null>(
     null
   );
+
+  useEffect(() => {
+    // Check if we have a previous prescription in sessionStorage
+    const previousPrescription = sessionStorage.getItem("previousPrescription");
+    if (previousPrescription) {
+      try {
+        const prescriptionData: PreviousPrescription =
+          JSON.parse(previousPrescription);
+        populateFormFromPrevious(prescriptionData);
+        // Remove the data from sessionStorage so it doesn't persist
+        sessionStorage.removeItem("previousPrescription");
+      } catch (error) {
+        console.error("Error parsing previous prescription:", error);
+      }
+    }
+  }, []);
+
+  // Function to populate form with previous prescription data
+  const populateFormFromPrevious = (prescriptionData: PreviousPrescription) => {
+    // Set patient information
+    setPatientId(prescriptionData.patient_number.toString());
+    setPatient({
+      id: 0, // This will be fetched properly when searching patient
+      patient_number: prescriptionData.patient_number,
+      full_name: prescriptionData.patient_name,
+      gender: prescriptionData.patient_gender,
+      age: prescriptionData.patient_age,
+      mobile: prescriptionData.patient_mobile,
+    });
+
+    // Set form data
+    setForm({
+      diagnosis: prescriptionData.diagnosis || "",
+      history: prescriptionData.history || "",
+      cc: prescriptionData.cc || "",
+      bp: prescriptionData.bp || "",
+      pulse: prescriptionData.pulse || "",
+      weight: prescriptionData.weight || "",
+      temperature: prescriptionData.temperature || "",
+      tests: prescriptionData.tests || "",
+      advice: prescriptionData.advice || "",
+    });
+
+    // Set medicines
+    if (prescriptionData.medicines && prescriptionData.medicines.length > 0) {
+      setMedicines(prescriptionData.medicines);
+    } else {
+      setMedicines([{ name: "", rules: "", days: "", notes: "" }]);
+    }
+
+    // Set next visit date if available
+    if (prescriptionData.next_visit_date) {
+      setNextVisitDate(new Date(prescriptionData.next_visit_date));
+    }
+  };
 
   // Clear medicine results
   const clearMedicineResults = () => {
@@ -168,7 +245,7 @@ export default function NewPrescriptionPage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `/api/patients/search?id=${patientId.trim()}`,
+        `/api/patients/search?number=${patientId.trim()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -178,6 +255,7 @@ export default function NewPrescriptionPage() {
         const data = await response.json();
         setPatient(data.patient);
         setVitals(data.vitals || {});
+        setPatientId(data.patient.patient_number.toString());
 
         // Auto-fill vitals if available
         if (data.vitals) {

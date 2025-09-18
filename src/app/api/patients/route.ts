@@ -5,6 +5,7 @@ import { getUserFromSession } from '@/lib/auth';
 
 interface Patient {
   id?: number;
+  patient_number?: number;
   full_name: string;
   gender: 'Male' | 'Female' | 'Other';
   age: number;
@@ -40,9 +41,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const offset = (page - 1) * limit;
 
-    // UPDATED: Use 'age' instead of calculating from 'dob'
+    // UPDATED: Include patient_number in the query
     let query = `
-      SELECT id, full_name, gender, age, mobile, email, blood_group, address, last_visit_date, created_at
+      SELECT id, patient_number, full_name, gender, age, mobile, email, blood_group, address, last_visit_date, created_at
       FROM patients 
       WHERE doctor_id = $1
     `;
@@ -50,12 +51,12 @@ export async function GET(request: NextRequest) {
     const queryParams: (string | number)[] = [doctorId];
 
     if (search) {
-      query += ` AND (full_name ILIKE $2 OR mobile ILIKE $2)`;
-      countQuery += ` AND (full_name ILIKE $2 OR mobile ILIKE $2)`;
+      query += ` AND (full_name ILIKE $2 OR mobile ILIKE $2 OR CAST(patient_number AS TEXT) ILIKE $2)`;
+      countQuery += ` AND (full_name ILIKE $2 OR mobile ILIKE $2 OR CAST(patient_number AS TEXT) ILIKE $2)`;
       queryParams.push(`%${search}%`);
     }
 
-    query += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
+    query += ` ORDER BY patient_number DESC LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
     queryParams.push(limit, offset);
 
     const [patientsResult, countResult] = await Promise.all([
@@ -120,13 +121,22 @@ export async function POST(request: NextRequest) {
     // Always link patient to the doctor, not the assistant
     const doctorId = user.role === "assistant" && user.doctor_id ? user.doctor_id : user.id;
 
+    // Get the next patient number for this doctor
+    const nextPatientNumberResult = await pool.query(
+      `SELECT get_next_patient_number($1) as next_number`,
+      [doctorId]
+    );
+    
+    const nextPatientNumber = nextPatientNumberResult.rows[0].next_number;
+
     const result = await pool.query(
       `INSERT INTO patients 
-       (doctor_id, full_name, gender, age, mobile, email, blood_group, address, last_visit_date)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (doctor_id, patient_number, full_name, gender, age, mobile, email, blood_group, address, last_visit_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
         doctorId,
+        nextPatientNumber,
         patientData.full_name,
         patientData.gender,
         patientData.age,

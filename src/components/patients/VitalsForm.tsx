@@ -1,4 +1,4 @@
-// components/patients/VitalsForm.tsx
+// components/patients/VitalsForm.tsx - UPDATED
 "use client";
 
 import { useState } from "react";
@@ -8,9 +8,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface VitalsFormProps {
-  patientId: number;
+  patientId: number; // This should be patient_number now
   onSuccess: () => void;
-  onCancel?: () => void;
+  onCancel: () => void;
 }
 
 export function VitalsForm({
@@ -39,7 +39,7 @@ export function VitalsForm({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          patient_id: patientId,
+          patient_number: patientId, // CHANGED: Send patient_number instead of patient_id
           ...formData,
         }),
       });
@@ -58,60 +58,63 @@ export function VitalsForm({
     }
   };
 
-  const handleChange = (field: keyof typeof formData, value: string) => {
+  const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="blood_pressure">Blood Pressure</Label>
           <Input
             id="blood_pressure"
-            placeholder="120/80"
             value={formData.blood_pressure}
             onChange={(e) => handleChange("blood_pressure", e.target.value)}
+            placeholder="e.g., 120/80"
           />
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="pulse">Pulse (BPM)</Label>
+          <Label htmlFor="pulse">Pulse</Label>
           <Input
             id="pulse"
-            placeholder="72"
             value={formData.pulse}
             onChange={(e) => handleChange("pulse", e.target.value)}
+            placeholder="e.g., 72 bpm"
           />
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="weight">Weight (kg)</Label>
+          <Label htmlFor="weight">Weight</Label>
           <Input
             id="weight"
-            placeholder="68.5"
             value={formData.weight}
             onChange={(e) => handleChange("weight", e.target.value)}
+            placeholder="e.g., 68 kg"
           />
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="temperature">Temperature (°C)</Label>
+          <Label htmlFor="temperature">Temperature</Label>
           <Input
             id="temperature"
-            placeholder="36.6"
             value={formData.temperature}
             onChange={(e) => handleChange("temperature", e.target.value)}
+            placeholder="e.g., 98.6°F"
           />
         </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-4">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
         <Button type="submit" disabled={loading}>
           {loading ? "Adding..." : "Add Vitals"}
         </Button>

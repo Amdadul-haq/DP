@@ -99,15 +99,21 @@ const NewPatientPage = () => {
   const [newPatientName, setNewPatientName] = useState<string>("");
 
   // Called when patient is successfully created
-  const handleSuccess = (patientData?: { id: number; name: string }) => {
-    if (patientData && patientData.id) {
-      setNewPatientId(patientData.id);
+  const handleSuccess = (patientData?: {
+    id: number;
+    patient_number: number;
+    name: string;
+  }) => {
+    if (patientData && patientData.patient_number) {
+      // CHANGED: Use patient_number
+      setNewPatientId(patientData.patient_number); // CHANGED: Store patient_number
       setNewPatientName(patientData.name || "");
       setShowConfirm(true);
     } else {
       router.push("/dashboard/patients");
     }
   };
+
 
   const handleCancel = () => router.push("/dashboard/patients");
 

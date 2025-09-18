@@ -53,6 +53,7 @@ import { useRouter } from "next/navigation";
 
 interface Patient {
   id: number;
+  patient_number: number; // Added patient_number
   full_name: string;
   gender: "Male" | "Female" | "Other";
   age: number;
@@ -123,27 +124,28 @@ export default function Patients() {
     fetchPatients(page, searchTerm);
   };
 
-  const handleDelete = async (patientId: number) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/patients/${patientId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+const handleDelete = async (patientNumber: number) => {
+  // CHANGED: parameter to patient_number
+  try {
+    const token = localStorage.getItem("token");
+    // CHANGED: Delete by patient_number
+    const response = await fetch(`/api/patients/${patientNumber}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (response.ok) {
-        toast.success("Patient deleted successfully");
-        fetchPatients(currentPage, searchTerm);
-        setDeleteDialogOpen(false);
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to delete patient");
-      }
-    } catch (error) {
-      toast.error("Failed to delete patient");
+    if (response.ok) {
+      toast.success("Patient deleted successfully");
+      fetchPatients(currentPage, searchTerm);
+      setDeleteDialogOpen(false);
+    } else {
+      const error = await response.json();
+      toast.error(error.error || "Failed to delete patient");
     }
-  };
-
+  } catch (error) {
+    toast.error("Failed to delete patient");
+  }
+};
   const formatDate = (dateString?: string) => {
     if (!dateString) return "Never";
     return new Date(dateString).toLocaleDateString();
@@ -270,6 +272,7 @@ export default function Patients() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead> {/* Added ID column */}
                 <TableHead>Name</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Gender</TableHead>
@@ -281,6 +284,9 @@ export default function Patients() {
             <TableBody>
               {patients.map((patient) => (
                 <TableRow key={patient.id}>
+                  <TableCell className="font-medium">
+                    {patient.patient_number} {/* Display patient number */}
+                  </TableCell>
                   <TableCell className="font-medium">
                     {patient.full_name}
                     {patient.blood_group && (
@@ -317,7 +323,9 @@ export default function Patients() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
                           onClick={() =>
-                            router.push(`/dashboard/patients/${patient.id}`)
+                            router.push(
+                              `/dashboard/patients/${patient.patient_number}`
+                            )
                           }
                         >
                           <Eye className="h-4 w-4 mr-2" />
@@ -400,15 +408,16 @@ export default function Patients() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              patient record for {selectedPatient?.full_name} and all associated
-              vitals records.
+              patient record for {selectedPatient?.full_name} (ID:
+              {selectedPatient?.patient_number}) and all associated vitals
+              records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
-                selectedPatient && handleDelete(selectedPatient.id)
+                selectedPatient && handleDelete(selectedPatient.patient_number)
               }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
