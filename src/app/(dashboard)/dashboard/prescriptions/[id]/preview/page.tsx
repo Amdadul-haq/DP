@@ -157,7 +157,16 @@ export default function PrescriptionPreview() {
       <div className="flex flex-wrap gap-4 mb-6 no-print">
         <Button
           variant="outline"
-          onClick={() => router.push("/dashboard/prescriptions/new")}
+          onClick={() => {
+            // Store the prescription data in sessionStorage before navigating
+            if (prescription) {
+              sessionStorage.setItem(
+                "previousPrescription",
+                JSON.stringify(prescription)
+              );
+            }
+            router.push("/dashboard/prescriptions/new");
+          }}
           className="flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
