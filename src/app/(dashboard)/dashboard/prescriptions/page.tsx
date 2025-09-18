@@ -1,5 +1,4 @@
 // src/app/dashboard/prescriptions/page.tsx
-// src/app/dashboard/prescriptions/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -65,6 +64,8 @@ export default function Prescriptions() {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [printingId, setPrintingId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPrescriptions();
@@ -105,6 +106,13 @@ export default function Prescriptions() {
   };
 
   const downloadPDF = async (prescriptionId: number) => {
+    setDownloadingId(prescriptionId);
+
+    // Show loading toast with progress
+    const toastId = toast.loading("Generating PDF...", {
+      description: "Preparing your prescription for download",
+    });
+
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/prescriptions/${prescriptionId}/pdf`, {
@@ -112,6 +120,12 @@ export default function Prescriptions() {
       });
 
       if (response.ok) {
+        // Update toast to show progress
+        toast.loading("Generating PDF...", {
+          id: toastId,
+          description: "Almost ready...",
+        });
+
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -122,12 +136,82 @@ export default function Prescriptions() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success("PDF downloaded successfully");
+
+        // Success toast
+        toast.success("PDF downloaded successfully", {
+          id: toastId,
+          description: "Your prescription has been downloaded",
+        });
       } else {
-        toast.error("Failed to download PDF");
+        toast.error("Failed to download PDF", {
+          id: toastId,
+          description: "Please try again later",
+        });
       }
     } catch (error) {
-      toast.error("Failed to download PDF");
+      toast.error("Failed to download PDF", {
+        id: toastId,
+        description: "Network error occurred",
+      });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const printPDF = async (prescriptionId: number) => {
+    setPrintingId(prescriptionId);
+
+    const toastId = toast.loading("Preparing for printing...", {
+      description: "Loading prescription document",
+    });
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/prescriptions/${prescriptionId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Open PDF in a new tab for printing
+        const printWindow = window.open(url, "_blank");
+
+        if (printWindow) {
+          printWindow.onload = function () {
+            setPrintingId(null);
+            toast.success("PDF ready for printing", {
+              id: toastId,
+              description: "Use the browser's print function (Ctrl+P)",
+            });
+
+            // Give the PDF a moment to load before focusing the print dialog
+            setTimeout(() => {
+              printWindow.focus();
+              // Note: We can't directly trigger print() due to browser restrictions
+              // The user will need to use the browser's print function
+            }, 1000);
+          };
+        } else {
+          toast.error("Popup blocked. Please allow popups for this site.", {
+            id: toastId,
+          });
+          setPrintingId(null);
+        }
+      } else {
+        toast.error("Failed to prepare for printing", {
+          id: toastId,
+          description: "Please try again later",
+        });
+        setPrintingId(null);
+      }
+    } catch (error) {
+      toast.error("Failed to prepare for printing", {
+        id: toastId,
+        description: "Network error occurred",
+      });
+      setPrintingId(null);
     }
   };
 
@@ -195,7 +279,9 @@ export default function Prescriptions() {
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-2">Loading prescriptions...</p>
+              <p className="text-muted-foreground mt-2">
+                Loading prescriptions...
+              </p>
             </div>
           ) : (
             <>
@@ -241,18 +327,24 @@ export default function Prescriptions() {
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => downloadPDF(prescription.id)}
+                              disabled={downloadingId === prescription.id}
                             >
                               <Download className="h-4 w-4 mr-2" />
-                              Download PDF
+                              {downloadingId === prescription.id
+                                ? "Generating..."
+                                : "Download PDF"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => window.print()}
+                              onClick={() => printPDF(prescription.id)}
+                              disabled={printingId === prescription.id}
                             >
                               <Printer className="h-4 w-4 mr-2" />
-                              Print
+                              {printingId === prescription.id
+                                ? "Preparing..."
+                                : "Print"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-red-600"
                               onClick={() => handleDelete(prescription.id)}
                             >

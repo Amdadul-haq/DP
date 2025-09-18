@@ -355,7 +355,7 @@ export default function PatientDetailsPage() {
             <DialogTitle>Add Vitals</DialogTitle>
           </DialogHeader>
           <VitalsForm
-            patientId={patient.id}
+            patientId={patient.patient_number} // CHANGED: Pass patient_number instead of internal ID
             onSuccess={() => {
               setVitalsDialogOpen(false);
               fetchVitals();

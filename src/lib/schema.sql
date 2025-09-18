@@ -1,20 +1,3 @@
-
-CREATE TABLE IF NOT EXISTS patients_vitals (
-    id SERIAL PRIMARY KEY,
-    patient_id INTEGER REFERENCES patients(id) ON DELETE CASCADE,
-    blood_pressure TEXT,
-    pulse TEXT,
-    weight TEXT,
-    temperature TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_patients_vitals_patient_id ON patients_vitals(patient_id);
-CREATE INDEX IF NOT EXISTS idx_patients_vitals_created_at ON patients_vitals(created_at);
--- ==========================
--- lib/schema.sql
--- ==========================
-
 -- ==========================
 -- 1) Users table
 -- ==========================
@@ -28,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     specialty VARCHAR(100),
     email_verified BOOLEAN DEFAULT FALSE,
     role VARCHAR(20) DEFAULT 'doctor' CHECK (role IN ('doctor', 'assistant')),
-    doctor_id INTEGER REFERENCES users(id) ON DELETE CASCADE, -- for assistants
+    doctor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -92,7 +75,7 @@ CREATE TYPE gender_enum AS ENUM ('Male', 'Female', 'Other');
 CREATE TABLE IF NOT EXISTS patients (
     id SERIAL PRIMARY KEY,
     doctor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    patient_number INTEGER NOT NULL, -- Per-doctor patient number
+    patient_number INTEGER NOT NULL,
     full_name TEXT NOT NULL,
     gender gender_enum NOT NULL,
     age INTEGER NOT NULL CHECK (age >= 0 AND age <= 150),
@@ -104,7 +87,7 @@ CREATE TABLE IF NOT EXISTS patients (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(doctor_id, mobile),
-    UNIQUE(doctor_id, patient_number) -- Ensure unique patient numbers per doctor
+    UNIQUE(doctor_id, patient_number)
 );
 
 CREATE INDEX idx_patients_doctor_id ON patients(doctor_id);
@@ -130,7 +113,23 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ==========================
--- 7) Prescriptions table
+-- 8) Patients vitals table
+-- ==========================
+CREATE TABLE IF NOT EXISTS patients_vitals (
+    id SERIAL PRIMARY KEY,
+    patient_id INTEGER REFERENCES patients(id) ON DELETE CASCADE,
+    blood_pressure TEXT,
+    pulse TEXT,
+    weight TEXT,
+    temperature TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_patients_vitals_patient_id ON patients_vitals(patient_id);
+CREATE INDEX IF NOT EXISTS idx_patients_vitals_created_at ON patients_vitals(created_at);
+
+-- ==========================
+-- 9) Prescriptions table (UPDATED)
 -- ==========================
 CREATE TABLE IF NOT EXISTS prescriptions (
     id SERIAL PRIMARY KEY,
@@ -144,17 +143,17 @@ CREATE TABLE IF NOT EXISTS prescriptions (
     weight TEXT,
     temperature TEXT,
     tests TEXT,
+    advice TEXT, -- ADDED: This is the missing column
     next_visit_date DATE,
     status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','completed')),
-    created_by INT REFERENCES users(id), -- doctor or assistant
+    created_by INT REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_prescriptions_doctor_id_created_at ON prescriptions(doctor_id, created_at DESC);
-
 -- ==========================
--- 8) Prescription medicines
+-- 10) Prescription medicines
 -- ==========================
 CREATE TABLE IF NOT EXISTS prescription_medicines (
     id SERIAL PRIMARY KEY,
