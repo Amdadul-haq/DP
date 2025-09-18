@@ -302,7 +302,7 @@ export default function Prescriptions() {
                         {formatDate(prescription.created_at)}
                       </TableCell>
                       <TableCell className="font-medium">
-                        #{prescription.patient_number}
+                        {prescription.patient_number}
                       </TableCell>
                       <TableCell className="font-medium">
                         {prescription.patient_name}
