@@ -4,7 +4,7 @@
 import { useRouter } from "next/navigation";
 import { motion, Variants } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { PrescriptionHTMLTemplate } from "@/components/PrescriptionHTMLTemplate";
+import { PrescriptionHTMLTemplate } from "../prescription/PrescriptionTemplateForDemo";
 
 const cardVariants: Variants = {
   hidden: { scale: 0.95, opacity: 0 },
