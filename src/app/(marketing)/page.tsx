@@ -3,8 +3,7 @@ import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
 import HowItWorks from "@/components/landing/HowItWorks";
 import Pricing from "@/components/landing/Pricing";
-import Demo from "@/components/landing/Demo";
-
+import DemoWithPrescriptionTemplate from "@/components/landing/DemoWithPrescriptionTemplate";
 export default function Home() {
   return (
     <main className="min-h-screen">
@@ -12,7 +11,7 @@ export default function Home() {
       <Features />
       <HowItWorks />
       <Pricing />
-      <Demo />
+      <DemoWithPrescriptionTemplate />
     </main>
   );
 }
