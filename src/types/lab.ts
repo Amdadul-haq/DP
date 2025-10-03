@@ -75,3 +75,10 @@ export interface LabReportResponse {
   created_at: string;
   customer_name: string;
 }
+export interface LabSettings {
+  lab_name_bengali: string;
+  lab_name_english: string;
+  lab_address: string;
+  lab_mobile: string;
+  lab_email: string;
+}

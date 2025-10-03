@@ -22,8 +22,28 @@ interface LabReportWithCustomer {
   address?: string;
 }
 
-function generateLabReportHTML(report: LabReportWithCustomer) {
+interface LabSettings {
+  lab_name_bengali: string;
+  lab_name_english: string;
+  lab_address: string;
+  lab_mobile: string;
+  lab_email: string;
+}
+
+function generateLabReportHTML(report: LabReportWithCustomer, labSettings: LabSettings) {
   const generatedOn = new Date().toLocaleDateString('en-GB');
+// Use lab settings if available, otherwise use default values
+  // const labNameBengali = labSettings.lab_name_bengali || "এম.এস ফার্সি কমিউনিটি হেলথ কেয়ার সার্ভিস";
+  // const labNameEnglish = labSettings.lab_name_english || "M.S FARSI COMMUNITY HEALTH CARE SERVICE";
+  // const labAddress = labSettings.lab_address || "Shalbari Bazar,Badargonj,Rangpur";
+  // const labMobile = labSettings.lab_mobile || "01318905857";
+  // const labEmail = labSettings.lab_email || "farsi8325@gmail.com";
+
+   const labNameBengali = labSettings.lab_name_bengali || "হেলথ কেয়ার সার্ভিস";
+  const labNameEnglish = labSettings.lab_name_english || "HEALTH CARE SERVICE";
+  const labAddress = labSettings.lab_address || "Bazar,Badargonj,Rangpur";
+  const labMobile = labSettings.lab_mobile || "01XXXXXXXX";
+  const labEmail = labSettings.lab_email || "demo@gmail.com";
   
   return `<!DOCTYPE html>
 <html>
@@ -151,10 +171,10 @@ function generateLabReportHTML(report: LabReportWithCustomer) {
 
 <body>
   <div class="header">
-    <h1>এম.এস ফার্সি কমিউনিটি হেলথ কেয়ার সার্ভিস</h1>
-    <h2>M.S FARSI COMMUNITY HEALTH CARE SERVICE</h2>
+    <h1>${labNameBengali}</h1>
+    <h2>${labNameEnglish}</h2>
     <p id="setboder"></p>
-    <p id="address">Shalbari Bazar,Badargonj,Rangpur || Mobile : 01318905857, Email : farsi8325@gmail.com</p>
+    <p id="address">${labAddress} || Mobile : ${labMobile}${labEmail ? `, Email : ${labEmail}` : ''}</p>
   </div>
   <p id="labrotary">Labrotary Services</p>
   <div class="header-container">
@@ -244,7 +264,7 @@ export async function GET(
     }
 
     // Get lab report with customer details
-    const result = await pool.query<LabReportWithCustomer>(
+    const reportResult = await pool.query<LabReportWithCustomer>(
       `SELECT lr.*, lc.full_name, lc.gender, lc.age, lc.mobile, lc.email, lc.address
        FROM lab_reports lr
        JOIN lab_customers lc ON lr.customer_id = lc.id
@@ -252,14 +272,30 @@ export async function GET(
       [resolvedParams.id, doctorId]
     );
 
-    if (result.rows.length === 0) {
+    if (reportResult.rows.length === 0) {
       return new NextResponse("Lab report not found", { status: 404 });
     }
 
-    const report = result.rows[0];
+    const report = reportResult.rows[0];
+
+    // Get doctor's lab settings
+    const labSettingsResult = await pool.query<LabSettings>(
+      `SELECT lab_name_bengali, lab_name_english, lab_address, lab_mobile, lab_email
+       FROM users WHERE id = $1`,
+      [doctorId]
+    );
+
+    const labSettings = labSettingsResult.rows[0] || {
+      lab_name_bengali: "",
+      lab_name_english: "",
+      lab_address: "",
+      lab_mobile: "",
+      lab_email: ""
+    };
     
-    // Generate HTML for PDF
-    const htmlContent = generateLabReportHTML(report);
+    // Generate HTML for PDF with dynamic lab settings
+    const htmlContent = generateLabReportHTML(report, labSettings);
+
 
     // Launch browser with correct config
     const browser = await getBrowser();
