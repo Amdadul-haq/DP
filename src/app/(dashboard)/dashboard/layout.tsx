@@ -33,6 +33,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Patients", href: "/dashboard/patients", icon: Users },
   { name: "Prescriptions", href: "/dashboard/prescriptions", icon: FileText },
+  { name: "Lab Reports", href: "/dashboard/lab-reports", icon: FileText },
   { name: "Medicine", href: "/dashboard/medicine", icon: BriefcaseMedical },
   { name: "Assistants", href: "/dashboard/assistants", icon: Users },
   { name: "Profile", href: "/dashboard/profile", icon: User },
