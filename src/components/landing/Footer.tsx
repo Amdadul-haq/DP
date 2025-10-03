@@ -48,7 +48,7 @@ export default function Footer() {
           <motion.div variants={itemVariants}>
             <h3 className="text-xl font-bold mb-4">Digital Prescription</h3>
             <p className="text-muted-foreground">
-              Modern digital prescription platform designed exclusively for
+              Digital prescription platform designed exclusively for
               healthcare professionals.
             </p>
           </motion.div>
