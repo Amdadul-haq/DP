@@ -29,7 +29,9 @@ interface PrescriptionData {
   medicines: Medicine[];
 }
 
-export function generatePrescriptionHTML(prescription: PrescriptionData): string {
+export function generatePrescriptionHTML(
+  prescription: PrescriptionData
+): string {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-BD", {
       timeZone: "Asia/Dhaka",
@@ -77,28 +79,38 @@ export function generatePrescriptionHTML(prescription: PrescriptionData): string
     if (items.length === 0) return '<p class="text-black">N/A</p>';
     return `
       <ul class="list-disc list-inside space-y-1">
-        ${items.map(item => `<li class="text-black">${item}</li>`).join('')}
+        ${items.map((item) => `<li class="text-black">${item}</li>`).join("")}
       </ul>
     `;
   };
 
   // Helper function to generate medicine items
   const generateMedicineItems = () => {
-    return prescription.medicines.map((medicine, index) => `
-      <div class="border-b pb-3 ${index === prescription.medicines.length - 1 ? 'last:border-b-0' : ''}">
+    return prescription.medicines
+      .map(
+        (medicine, index) => `
+      <div class="border-b pb-3 ${
+        index === prescription.medicines.length - 1 ? "last:border-b-0" : ""
+      }">
         <div class="font-medium text-black">${medicine.name}</div>
         <div class="flex justify-between text-sm">
           <div class="flex gap-3 flex-wrap">
             <span>${medicine.rules}</span>
-            ${medicine.notes ? `<span class="break-words">${medicine.notes}</span>` : ''}
+            ${
+              medicine.notes
+                ? `<span class="break-words">${medicine.notes}</span>`
+                : ""
+            }
           </div>
           <span>${medicine.days}</span>
         </div>
       </div>
-    `).join('');
+    `
+      )
+      .join("");
   };
 
-return `
+  return `
     <!DOCTYPE html>
     <html>
       <head>
@@ -367,16 +379,24 @@ return `
             <!-- Patient Info -->
             <div class="grid grid-cols-4 gap-2 border-t-2 border-b-2 border-black bg-gray-100 p-2">
               <div class="text-black text-xs">
-                <span class="font-semibold">ID:</span> ${prescription.patient_number}
+                <span class="font-semibold">ID:</span> ${
+                  prescription.patient_number
+                }
               </div>
               <div class="text-black text-xs">
-                <span class="font-semibold">Name:</span> ${prescription.patient_name}
+                <span class="font-semibold">Name:</span> ${
+                  prescription.patient_name
+                }
               </div>
               <div class="text-black text-xs">
-                <span class="font-semibold">Age/Sex:</span> ${prescription.patient_age}y / ${prescription.patient_gender}
+                <span class="font-semibold">Age/Sex:</span> ${
+                  prescription.patient_age
+                }y / ${prescription.patient_gender}
               </div>
               <div class="text-black text-xs">
-                <span class="font-semibold">Date:</span> ${formatDate(prescription.created_at)}
+                <span class="font-semibold">Date:</span> ${formatDate(
+                  prescription.created_at
+                )}
               </div>
             </div>
 
@@ -388,31 +408,84 @@ return `
                   <!-- Chief Complaints - Always show title -->
                   <div>
                     <h4 class="font-semibold text-black mb-1 text-sm">Chief Complaints (CC):</h4>
-                    ${prescription.cc ? generateListItems(splitValues(prescription.cc)) : '<p class="text-black text-xs">N/A</p>'}
+                    ${
+                      prescription.cc
+                        ? generateListItems(splitValues(prescription.cc))
+                        : '<p class="text-black text-xs">N/A</p>'
+                    }
                   </div>
+                    <!-- Vitals Section - New Section -->
+<div>
+  <h4 class="font-semibold text-black mb-1 text-sm">Vitals:</h4>
+  <div class="space-y-2">
+    <!-- First Row: BP and Pulse -->
+    <div class="flex justify-between gap-4">
+      <div class="flex-1">
+        <span class="text-black text-sm">BP: ${
+          prescription.bp ? prescription.bp + " mm/Hg" : "-"
+        }</span>
+      </div>
+      <div class="flex-1">
+        <span class="text-black text-sm">Pulse: ${
+          prescription.pulse ? prescription.pulse + " bpm" : "-"
+        }</span>
+      </div>
+    </div>
+    <!-- Second Row: Weight and Temperature -->
+    <div class="flex justify-between gap-4">
+      <div class="flex-1">
+        <span class="text-black text-sm">Weight: ${
+          prescription.weight ? prescription.weight + " Kg" : "-"
+        }</span>
+      </div>
+      <div class="flex-1">
+        <span class="text-black text-sm">Temp: ${
+          prescription.temperature ? prescription.temperature + " °F" : "-"
+        }</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
 
                   <!-- Diagnosis - Always show title -->
                   <div>
                     <h4 class="font-semibold text-black mb-1 text-sm">Diagnosis:</h4>
-                    ${prescription.diagnosis ? generateListItems(splitValues(prescription.diagnosis)) : '<p class="text-black text-xs">N/A</p>'}
+                    ${
+                      prescription.diagnosis
+                        ? generateListItems(splitValues(prescription.diagnosis))
+                        : '<p class="text-black text-xs">N/A</p>'
+                    }
                   </div>
 
                   <!-- Tests Recommended - Always show title -->
                   <div>
                     <h4 class="font-semibold text-black mb-1 text-sm">Tests Recommended:</h4>
-                    ${prescription.tests ? generateListItems(splitValues(prescription.tests)) : '<p class="text-black text-xs">N/A</p>'}
+                    ${
+                      prescription.tests
+                        ? generateListItems(splitValues(prescription.tests))
+                        : '<p class="text-black text-xs">N/A</p>'
+                    }
                   </div>
 
                   <!-- Medical History - Always show title -->
                   <div>
                     <h4 class="font-semibold text-black mb-1 text-sm">Medical History:</h4>
-                    ${prescription.history ? generateListItems(splitValues(prescription.history)) : '<p class="text-black text-xs">N/A</p>'}
+                    ${
+                      prescription.history
+                        ? generateListItems(splitValues(prescription.history))
+                        : '<p class="text-black text-xs">N/A</p>'
+                    }
                   </div>
 
                   <!-- Advice - Always show title -->
                   <div>
                     <h4 class="font-semibold text-black mb-1 text-sm">Advice:</h4>
-                    ${prescription.advice ? generateListItems(splitValues(prescription.advice)) : '<p class="text-black text-xs">N/A</p>'}
+                    ${
+                      prescription.advice
+                        ? generateListItems(splitValues(prescription.advice))
+                        : '<p class="text-black text-xs">N/A</p>'
+                    }
                   </div>
                 </div>
 
@@ -431,19 +504,23 @@ return `
             <div class="signature-area bengali-font">
               <!-- Next Visit Section - Always show -->
               <div>
-                ${prescription.next_visit_date ? `
+                ${
+                  prescription.next_visit_date
+                    ? `
                   <p class="text-xs text-black">
                     * ${daysUntilNextVisit} দিন পর আবার আসবেন।
                     <br />
                     (পরবর্তী সাক্ষাতের সময় ব্যবস্থাপত্র সঙ্গে আনবেন)
                   </p>
-                ` : `
+                `
+                    : `
                   <p class="text-xs text-black">
                     .... দিন পর আবার আসবেন ।
                     <br />
                     (পরবর্তী সাক্ষাতের সময় ব্যবস্থাপত্র সঙ্গে আনবেন)
                   </p>
-                `}
+                `
+                }
               </div>
 
               <!-- Doctor's Signature -->
@@ -494,5 +571,4 @@ return `
       </body>
     </html>
   `;
-
-} 
+}
