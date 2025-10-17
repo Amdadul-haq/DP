@@ -157,6 +157,49 @@ export function PrescriptionHTMLTemplate({
                 )}
               </div>
 
+              {/* Vitals Section - New Section */}
+              <div>
+                <h4 className="font-semibold text-black mb-2">Vitals:</h4>
+                <div className="space-y-2">
+                  {/* First Row: BP and Pulse */}
+                  <div className="flex justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        BP:{" "}
+                        {prescription.bp ? prescription.bp + " mm/Hg" : "-"}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        Pulse:{" "}
+                        {prescription.pulse
+                          ? prescription.pulse + " bpm"
+                          : "-"}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Second Row: Weight and Temperature */}
+                  <div className="flex justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        Weight:{" "}
+                        {prescription.weight
+                          ? prescription.weight + " Kg"
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        Temp:{" "}
+                        {prescription.temperature
+                          ? prescription.temperature + " °F"
+                          : "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Diagnosis - Always show title */}
               <div>
                 <h4 className="font-semibold text-black mb-2">Diagnosis:</h4>
@@ -301,11 +344,11 @@ export function PrescriptionHTMLTemplate({
             <div className="text-sm">
               <p>এন এ ফার্মেসী সংলগ্ন</p>
               <p>শালবাড়ি বাজার, বদরগঞ্জ, রংপুর</p>
-              <p>
+              {/* <p>
                 রোগী দেখার সময় : প্রতি শনিবার,রবিবার,সোমবার,বুধবার ও বৃহস্পতিবার
                 সকাল ৯:০০ টা হতে দুপুর ১২:০০ টা ও বিকাল ৪:০০ টা হতে রাত ১০:০০ টা
                 পর্যন্ত
-              </p>
+              </p> */}
               <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
             </div>
           </div>
@@ -318,11 +361,11 @@ export function PrescriptionHTMLTemplate({
             <div className="text-sm">
               <p>এন এ ফার্মেসী সংলগ্ন</p>
               <p>শালবাড়ি বাজার, বদরগঞ্জ, রংপুর</p>
-              <p>
+              {/* <p>
                 রোগী দেখার সময় : প্রতি শনিবার,রবিবার,সোমবার,বুধবার ও বৃহস্পতিবার
                 সকাল ৯:০০ টা হতে দুপুর ১২:০০ টা ও বিকাল ৪:০০ টা হতে রাত ১০:০০ টা
                 পর্যন্ত
-              </p>
+              </p> */}
               <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
             </div>
           </div>
@@ -335,11 +378,11 @@ export function PrescriptionHTMLTemplate({
             <div className="text-sm">
               <p>এন এ ফার্মেসী সংলগ্ন</p>
               <p>শালবাড়ি বাজার, বদরগঞ্জ, রংপুর</p>
-              <p>
+              {/* <p>
                 রোগী দেখার সময় : প্রতি শনিবার,রবিবার,সোমবার,বুধবার ও বৃহস্পতিবার
                 সকাল ৯:০০ টা হতে দুপুর ১২:০০ টা ও বিকাল ৪:০০ টা হতে রাত ১০:০০ টা
                 পর্যন্ত
-              </p>
+              </p> */}
               <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
             </div>
           </div>

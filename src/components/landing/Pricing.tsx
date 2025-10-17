@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, Variants } from "framer-motion";
 import { useInView } from "react-intersection-observer";
+import { useRouter } from "next/navigation";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -28,6 +29,7 @@ const itemVariants: Variants = {
 };
 
 export default function Pricing() {
+
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   type Plan = {
@@ -69,6 +71,12 @@ export default function Pricing() {
   const handlePlanSelect = (planName: string) => {
     setSelectedPlan(planName);
   };
+
+  const router = useRouter();
+    const handleGetStarted = () => {
+      router.push("/register");
+    };
+
 
   if (isLoading) {
     return (
@@ -194,7 +202,8 @@ export default function Pricing() {
                       ))
                     : null}
                 </ul>
-                <button className="w-full py-3 px-4 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                <button className="w-full py-3 px-4 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                onClick={handleGetStarted}>
                   Get Started
                 </button>
               </motion.div>

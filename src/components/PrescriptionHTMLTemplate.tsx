@@ -117,7 +117,8 @@ export function PrescriptionHTMLTemplate({
         {/* Patient Info */}
         <div className="grid grid-cols-4 gap-2 border-t-2 border-b-2 border-black bg-gray-100 p-2">
           <div className="text-black">
-            <span className="font-semibold">ID:</span> {prescription.patient_number}
+            <span className="font-semibold">ID:</span>{" "}
+            {prescription.patient_number}
           </div>
           <div className="text-black">
             <span className="font-semibold">Name:</span>{" "}
@@ -154,6 +155,49 @@ export function PrescriptionHTMLTemplate({
                 ) : (
                   <p className="text-black">N/A</p>
                 )}
+              </div>
+
+              {/* Vitals Section - New Section */}
+              <div>
+                <h4 className="font-semibold text-black mb-2">Vitals:</h4>
+                <div className="space-y-2">
+                  {/* First Row: BP and Pulse */}
+                  <div className="flex justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        BP:{" "}
+                        {prescription.bp ? prescription.bp + " mm/Hg" : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        Pulse:{" "}
+                        {prescription.pulse
+                          ? prescription.pulse + " bpm"
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Second Row: Weight and Temperature */}
+                  <div className="flex justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        Weight:{" "}
+                        {prescription.weight
+                          ? prescription.weight + " kg"
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-black text-sm">
+                        Temp:{" "}
+                        {prescription.temperature
+                          ? prescription.temperature + " °C"
+                          : "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Diagnosis - Always show title */}
@@ -235,10 +279,7 @@ export function PrescriptionHTMLTemplate({
               </h4>
               <div className="space-y-3 pl-15">
                 {prescription.medicines.map((medicine, index) => (
-                  <div
-                    key={index}
-                    className="border-b pb-3 last:border-b-0"
-                  >
+                  <div key={index} className="border-b pb-3 last:border-b-0">
                     <div className="font-medium text-black">
                       {medicine.name}
                     </div>
@@ -295,7 +336,6 @@ export function PrescriptionHTMLTemplate({
       {/* Footer: 3 Chamber Info */}
       <div className="pt-2 border-t-2 border-black mt-0">
         <div className="grid grid-cols-3 invisible gap-4 text-black">
-        
           <div>
             <h4 className="font-semibold mb-1">
               {" "}
@@ -312,7 +352,7 @@ export function PrescriptionHTMLTemplate({
               <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
             </div>
           </div>
-         
+
           <div>
             <h4 className="font-semibold mb-1">
               {" "}
@@ -329,7 +369,7 @@ export function PrescriptionHTMLTemplate({
               <p>মোবাইল: ০১৩১৮৯০৫৮৫৭</p>
             </div>
           </div>
-        
+
           <div>
             <h4 className="font-semibold mb-1">
               {" "}
