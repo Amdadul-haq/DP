@@ -1,7 +1,7 @@
 // src/app/dashboard/prescriptions/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -29,18 +29,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Plus,
   Search,
   MoreHorizontal,
-  Edit,
   Trash2,
   Eye,
   Download,
   Printer,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+interface Medicine {
+  name: string;
+  rules: string;
+  days: string;
+  notes?: string;
+}
 
 interface Prescription {
   id: number;
@@ -52,11 +65,11 @@ interface Prescription {
   medicines: Medicine[];
 }
 
-interface Medicine {
-  name: string;
-  rules: string;
-  days: string;
-  notes?: string;
+interface PrescriptionsResponse {
+  prescriptions: Prescription[];
+  totalPages: number;
+  currentPage: number;
+  totalCount: number;
 }
 
 export default function Prescriptions() {
@@ -66,22 +79,27 @@ export default function Prescriptions() {
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [printingId, setPrintingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    fetchPrescriptions();
-  }, []);
-
-  const fetchPrescriptions = async () => {
+  const fetchPrescriptions = async (page: number = 1, search: string = "") => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("/api/prescriptions/latest", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `/api/prescriptions/latest?page=${page}&limit=15&search=${encodeURIComponent(
+          search
+        )}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       if (response.ok) {
-        const data = await response.json();
+        const data: PrescriptionsResponse = await response.json();
         setPrescriptions(data.prescriptions);
+        setTotalPages(data.totalPages);
+        setCurrentPage(data.currentPage);
+        setTotalCount(data.totalCount);
       } else {
         toast.error("Failed to fetch prescriptions");
       }
@@ -92,14 +110,25 @@ export default function Prescriptions() {
     }
   };
 
-  const filteredPrescriptions = prescriptions.filter(
-    (prescription) =>
-      prescription.patient_name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      prescription.diagnosis.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prescription.patient_number.toString().includes(searchTerm)
-  );
+  useEffect(() => {
+    fetchPrescriptions();
+  }, []);
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchPrescriptions(1, searchTerm);
+  };
+
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchPrescriptions(page, searchTerm);
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -107,8 +136,6 @@ export default function Prescriptions() {
 
   const downloadPDF = async (prescriptionId: number) => {
     setDownloadingId(prescriptionId);
-
-    // Show loading toast with progress
     const toastId = toast.loading("Generating PDF...", {
       description: "Preparing your prescription for download",
     });
@@ -120,7 +147,6 @@ export default function Prescriptions() {
       });
 
       if (response.ok) {
-        // Update toast to show progress
         toast.loading("Generating PDF...", {
           id: toastId,
           description: "Almost ready...",
@@ -137,7 +163,6 @@ export default function Prescriptions() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        // Success toast
         toast.success("PDF downloaded successfully", {
           id: toastId,
           description: "Your prescription has been downloaded",
@@ -160,7 +185,6 @@ export default function Prescriptions() {
 
   const printPDF = async (prescriptionId: number) => {
     setPrintingId(prescriptionId);
-
     const toastId = toast.loading("Preparing for printing...", {
       description: "Loading prescription document",
     });
@@ -174,8 +198,6 @@ export default function Prescriptions() {
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-
-        // Open PDF in a new tab for printing
         const printWindow = window.open(url, "_blank");
 
         if (printWindow) {
@@ -186,11 +208,8 @@ export default function Prescriptions() {
               description: "Use the browser's print function (Ctrl+P)",
             });
 
-            // Give the PDF a moment to load before focusing the print dialog
             setTimeout(() => {
               printWindow.focus();
-              // Note: We can't directly trigger print() due to browser restrictions
-              // The user will need to use the browser's print function
             }, 1000);
           };
         } else {
@@ -227,7 +246,7 @@ export default function Prescriptions() {
 
       if (response.ok) {
         toast.success("Prescription deleted successfully");
-        fetchPrescriptions();
+        fetchPrescriptions(currentPage, searchTerm);
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to delete prescription");
@@ -243,7 +262,8 @@ export default function Prescriptions() {
         <div>
           <h2 className="text-3xl font-bold text-foreground">Prescriptions</h2>
           <p className="text-muted-foreground">
-            Manage and view prescriptions for your patients
+            Manage and view prescriptions for your patients ({totalCount} total
+            prescriptions)
           </p>
         </div>
         <Button asChild>
@@ -263,15 +283,21 @@ export default function Prescriptions() {
                 Most recent prescription for each patient
               </CardDescription>
             </div>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search prescriptions..."
-                className="pl-8 sm:w-[300px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search prescriptions..."
+                  className="pl-8 w-[250px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                />
+              </div>
+              <Button onClick={handleSearch} variant="outline">
+                Search
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -296,7 +322,7 @@ export default function Prescriptions() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPrescriptions.map((prescription) => (
+                  {prescriptions.map((prescription) => (
                     <TableRow key={prescription.id}>
                       <TableCell className="text-muted-foreground">
                         {formatDate(prescription.created_at)}
@@ -358,12 +384,57 @@ export default function Prescriptions() {
                   ))}
                 </TableBody>
               </Table>
-              {filteredPrescriptions.length === 0 && (
+
+              {prescriptions.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   {searchTerm
                     ? "No prescriptions found matching your search"
                     : "No prescriptions found. Create your first prescription!"}
                 </div>
+              )}
+
+              {totalPages > 1 && (
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() =>
+                          currentPage > 1 && handlePageChange(currentPage - 1)
+                        }
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+
+                    {[...Array(totalPages)].map((_, i) => (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          isActive={currentPage === i + 1}
+                          onClick={() => handlePageChange(i + 1)}
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          currentPage < totalPages &&
+                          handlePageChange(currentPage + 1)
+                        }
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               )}
             </>
           )}
