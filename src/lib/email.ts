@@ -1,16 +1,36 @@
-// lib/email.ts - Updated for Brevo
+// lib/email.ts - Email configuration with provider support
 import nodemailer from "nodemailer";
 
-// Brevo SMTP configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.BREVO_SMTP_HOST || "smtp-relay.brevo.com",
-  port: parseInt(process.env.BREVO_SMTP_PORT || "587"),
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Determine transporter based on EMAIL_HOST or EMAIL_SERVICE
+const getTransporter = () => {
+  const host = process.env.EMAIL_HOST;
+  const port = process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined;
+  const emailService = process.env.EMAIL_SERVICE;
+  
+  // If explicit SMTP host/port are provided, use them (e.g., Brevo)
+  if (host && port) {
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465, // true for 465, false for 587
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
+  
+  // Otherwise, use a named service (Gmail, Outlook, etc.)
+  return nodemailer.createTransport({
+    service: emailService || "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+};
+
+const transporter = getTransporter();
 
 export interface EmailOptions {
   to: string;
