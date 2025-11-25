@@ -1,36 +1,70 @@
 // lib/email.ts - Email configuration with provider support
 import nodemailer from "nodemailer";
 
-// Determine transporter based on EMAIL_HOST or EMAIL_SERVICE
-const getTransporter = () => {
-  const host = process.env.EMAIL_HOST;
-  const port = process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : undefined;
-  const emailService = process.env.EMAIL_SERVICE;
-  
-  // If explicit SMTP host/port are provided, use them (e.g., Brevo)
-  if (host && port) {
-    return nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465, // true for 465, false for 587
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
+// Lazily create transporter to ensure latest env vars (important on serverless cold starts)
+let cachedTransporter: nodemailer.Transporter | null = null;
+
+function buildTransporter(): nodemailer.Transporter {
+  const hostRaw = process.env.EMAIL_HOST?.trim();
+  const serviceRaw = process.env.EMAIL_SERVICE?.trim();
+  let port: number | undefined = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : undefined;
+  const secureEnv = process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE === 'true' : false;
+  const user = process.env.EMAIL_USER?.trim();
+  const pass = process.env.EMAIL_PASSWORD?.trim();
+
+  // Basic validation
+  if (!user || !pass) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[email] Missing EMAIL_USER or EMAIL_PASSWORD environment variables.');
+    }
+  }
+
+  // If host provided but port missing, infer defaults for known providers
+  if (hostRaw && !port) {
+    if (/brevo|sendinblue/i.test(hostRaw)) {
+      port = 587; // Brevo recommended port
+    }
+  }
+
+  // Decide path: explicit SMTP vs named service
+  let transporter: nodemailer.Transporter;
+  if (hostRaw && (port || port === 0)) {
+    transporter = nodemailer.createTransport({
+      host: hostRaw,
+      port: port!,
+      secure: secureEnv || port === 465, // allow override via EMAIL_SECURE
+      auth: { user, pass },
+      // Brevo & many shared SMTP relays work with STARTTLS; relax TLS in serverless if needed
+      tls: { rejectUnauthorized: false },
+      // Some providers require explicit auth method
+      authMethod: 'LOGIN'
+    });
+  } else {
+    transporter = nodemailer.createTransport({
+      service: serviceRaw || 'gmail',
+      auth: { user, pass }
     });
   }
-  
-  // Otherwise, use a named service (Gmail, Outlook, etc.)
-  return nodemailer.createTransport({
-    service: emailService || "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
-};
 
-const transporter = getTransporter();
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[email] Transporter configuration', {
+      mode: hostRaw ? 'smtp' : 'service',
+      host: hostRaw || undefined,
+      port: port || undefined,
+      secure: secureEnv || (port === 465),
+      service: !hostRaw ? (serviceRaw || 'gmail') : undefined
+    });
+  }
+
+  return transporter;
+}
+
+function getTransporter(): nodemailer.Transporter {
+  if (!cachedTransporter) {
+    cachedTransporter = buildTransporter();
+  }
+  return cachedTransporter;
+}
 
 export interface EmailOptions {
   to: string;
@@ -42,6 +76,25 @@ export interface EmailOptions {
  * Send email using nodemailer with Brevo
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  const requiredVars = ['EMAIL_USER', 'EMAIL_PASSWORD'];
+  const missing = requiredVars.filter(v => !process.env[v]);
+  if (missing.length) {
+    console.error('[email] Missing required env vars:', missing);
+    return false;
+  }
+
+  const transporter = getTransporter();
+
+  // Optional verify in non-production for clearer diagnostics
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      await transporter.verify();
+      console.log('[email] Transporter verified OK');
+    } catch (verifyErr: unknown) {
+      console.error('[email] Transporter verification failed:', verifyErr);
+    }
+  }
+
   try {
     await transporter.sendMail({
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -50,8 +103,12 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       html: options.html,
     });
     return true;
-  } catch (error) {
-    console.error("Email sending error:", error);
+  } catch (error: unknown) {
+    const err = error as { code?: string } & Error;
+    if (err.code === 'EAUTH') {
+      console.error('[email] Authentication failed. Check EMAIL_USER / EMAIL_PASSWORD. If using Brevo ensure SMTP key (not UI password) is set.');
+    }
+    console.error('[email] Email sending error:', err);
     return false;
   }
 }
