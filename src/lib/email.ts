@@ -1,9 +1,11 @@
-// lib/email.ts
-import nodemailer from 'nodemailer';
+// lib/email.ts - Updated for Brevo
+import nodemailer from "nodemailer";
 
-// Initialize nodemailer transporter
+// Brevo SMTP configuration
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
+  host: process.env.BREVO_SMTP_HOST || "smtp-relay.brevo.com",
+  port: parseInt(process.env.BREVO_SMTP_PORT || "587"),
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
@@ -17,7 +19,7 @@ export interface EmailOptions {
 }
 
 /**
- * Send email using nodemailer
+ * Send email using nodemailer with Brevo
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
@@ -29,7 +31,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    console.error('Email sending error:', error);
+    console.error("Email sending error:", error);
     return false;
   }
 }
@@ -69,7 +71,7 @@ export async function sendPasswordResetEmail(
 
   return sendEmail({
     to: email,
-    subject: 'Password Reset Code - Digital Prescription',
+    subject: "Password Reset Code - Digital Prescription",
     html,
   });
 }
@@ -101,7 +103,7 @@ export async function sendEmailVerificationCode(
 
   return sendEmail({
     to: email,
-    subject: 'Email Verification Code - Digital Prescription',
+    subject: "Email Verification Code - Digital Prescription",
     html,
   });
 }
