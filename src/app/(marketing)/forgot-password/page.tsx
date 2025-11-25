@@ -1,7 +1,7 @@
 // src/app/(marketing)/forgot-password/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,26 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [maskedEmail, setMaskedEmail] = useState("");
+  const [canResendAt, setCanResendAt] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const router = useRouter();
+
+  // Countdown timer for resend
+  useEffect(() => {
+    if (!canResendAt) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((canResendAt - now) / 1000));
+      setTimeRemaining(remaining);
+
+      if (remaining === 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [canResendAt]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +60,7 @@ export default function ForgotPassword() {
       if (response.ok) {
         setCodeSent(true);
         setMaskedEmail(data.email);
+        setCanResendAt(new Date(data.canResendAt).getTime());
         toast.success("Reset code sent!", {
           description: "Check your email for the 6-digit reset code.",
         });
@@ -52,6 +72,45 @@ export default function ForgotPassword() {
       } else {
         toast.error("Error", {
           description: data.error || "Failed to send reset code.",
+        });
+      }
+    } catch (error) {
+      toast.error("Error", {
+        description: "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (timeRemaining > 0) {
+      toast.error("Please wait", {
+        description: `You can request a new code in ${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`,
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setCanResendAt(new Date(data.canResendAt).getTime());
+        toast.success("New code sent!", {
+          description: "Check your email for a new reset code.",
+        });
+      } else {
+        toast.error("Error", {
+          description: data.error || "Failed to resend code.",
         });
       }
     } catch (error) {
