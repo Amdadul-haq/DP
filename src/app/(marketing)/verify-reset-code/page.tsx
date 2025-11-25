@@ -1,7 +1,7 @@
 // src/app/(marketing)/verify-reset-code/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,9 +13,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
-export default function VerifyResetCode() {
+// Main content component that uses useSearchParams
+function VerifyResetCodeContent() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -135,7 +140,11 @@ export default function VerifyResetCode() {
               </p>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || code.length !== 6}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || code.length !== 6}
+            >
               {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -148,7 +157,9 @@ export default function VerifyResetCode() {
           </form>
 
           <div className="mt-4 text-center text-sm">
-            <p className="text-muted-foreground mb-2">Didn&apos;t receive the code?</p>
+            <p className="text-muted-foreground mb-2">
+              Didn&apos;t receive the code?
+            </p>
             <Button
               variant="outline"
               className="w-full"
@@ -160,5 +171,32 @@ export default function VerifyResetCode() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function VerifyResetCode() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-muted py-12 px-4 sm:px-6 lg:px-8">
+          <Card className="w-full max-w-md">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold text-center">
+                Verify reset code
+              </CardTitle>
+              <CardDescription className="text-center">
+                Loading...
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <VerifyResetCodeContent />
+    </Suspense>
   );
 }
