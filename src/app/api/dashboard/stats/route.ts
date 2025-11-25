@@ -31,68 +31,71 @@ export async function GET(request: NextRequest) {
     const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
     const previousYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
-    // Fetch all stats in parallel
-    const [
-      totalPatientsResult,
-      previousPatientsResult,
-      totalPrescriptionsResult,
-      previousTotalPrescriptionsResult,
-      monthlyPrescriptionsResult,
-      previousMonthlyPrescriptionsResult,
-      monthlyAnalyticsResult,
-    ] = await Promise.all([
-      // Current total patients
-      pool.query("SELECT COUNT(*) FROM patients WHERE doctor_id = $1", [
-        doctorId,
-      ]),
-      // Previous month total patients (for comparison)
-      pool.query(
-        `SELECT COUNT(*) FROM patients 
-         WHERE doctor_id = $1 
-         AND created_at < $2`,
-        [doctorId, new Date(previousYear, previousMonth - 1, 1)]
-      ),
-      // Current total prescriptions
-      pool.query("SELECT COUNT(*) FROM prescriptions WHERE doctor_id = $1", [
-        doctorId,
-      ]),
-      // Previous total prescriptions (1 month ago)
-      pool.query(
-        `SELECT COUNT(*) FROM prescriptions 
-         WHERE doctor_id = $1 
-         AND created_at < $2`,
-        [doctorId, new Date(previousYear, previousMonth - 1, 1)]
-      ),
-      // Current month prescriptions
-      pool.query(
-        `SELECT COUNT(*) FROM prescriptions 
-         WHERE doctor_id = $1 
-         AND EXTRACT(MONTH FROM created_at) = $2 
-         AND EXTRACT(YEAR FROM created_at) = $3`,
-        [doctorId, currentMonth, currentYear]
-      ),
-      // Previous month prescriptions
-      pool.query(
-        `SELECT COUNT(*) FROM prescriptions 
-         WHERE doctor_id = $1 
-         AND EXTRACT(MONTH FROM created_at) = $2 
-         AND EXTRACT(YEAR FROM created_at) = $3`,
-        [doctorId, previousMonth, previousYear]
-      ),
-      // Monthly analytics for chart (last 6 months)
-      pool.query(
-        `SELECT 
-           EXTRACT(YEAR FROM created_at) as year,
-           EXTRACT(MONTH FROM created_at) as month,
-           COUNT(*) as count
-         FROM prescriptions 
-         WHERE doctor_id = $1 
-         AND created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '5 months')
-         GROUP BY year, month
-         ORDER BY year, month`,
-        [doctorId]
-      ),
-    ]);
+    // Use a single connection for all queries to avoid pool exhaustion
+    const client = await pool.connect();
+    try {
+      // Fetch all stats using single connection
+      const [
+        totalPatientsResult,
+        previousPatientsResult,
+        totalPrescriptionsResult,
+        previousTotalPrescriptionsResult,
+        monthlyPrescriptionsResult,
+        previousMonthlyPrescriptionsResult,
+        monthlyAnalyticsResult,
+      ] = await Promise.all([
+        // Current total patients
+        client.query("SELECT COUNT(*) FROM patients WHERE doctor_id = $1", [
+          doctorId,
+        ]),
+        // Previous month total patients (for comparison)
+        client.query(
+          `SELECT COUNT(*) FROM patients 
+           WHERE doctor_id = $1 
+           AND created_at < $2`,
+          [doctorId, new Date(previousYear, previousMonth - 1, 1)]
+        ),
+        // Current total prescriptions
+        client.query("SELECT COUNT(*) FROM prescriptions WHERE doctor_id = $1", [
+          doctorId,
+        ]),
+        // Previous total prescriptions (1 month ago)
+        client.query(
+          `SELECT COUNT(*) FROM prescriptions 
+           WHERE doctor_id = $1 
+           AND created_at < $2`,
+          [doctorId, new Date(previousYear, previousMonth - 1, 1)]
+        ),
+        // Current month prescriptions
+        client.query(
+          `SELECT COUNT(*) FROM prescriptions 
+           WHERE doctor_id = $1 
+           AND EXTRACT(MONTH FROM created_at) = $2 
+           AND EXTRACT(YEAR FROM created_at) = $3`,
+          [doctorId, currentMonth, currentYear]
+        ),
+        // Previous month prescriptions
+        client.query(
+          `SELECT COUNT(*) FROM prescriptions 
+           WHERE doctor_id = $1 
+           AND EXTRACT(MONTH FROM created_at) = $2 
+           AND EXTRACT(YEAR FROM created_at) = $3`,
+          [doctorId, previousMonth, previousYear]
+        ),
+        // Monthly analytics for chart (last 6 months)
+        client.query(
+          `SELECT 
+             EXTRACT(YEAR FROM created_at) as year,
+             EXTRACT(MONTH FROM created_at) as month,
+             COUNT(*) as count
+           FROM prescriptions 
+           WHERE doctor_id = $1 
+           AND created_at >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL '5 months')
+           GROUP BY year, month
+           ORDER BY year, month`,
+          [doctorId]
+        ),
+      ]);
 
     // Process analytics data for chart
     const monthlyData = monthlyAnalyticsResult.rows.map((row) => ({
@@ -131,6 +134,9 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(stats);
+    } finally {
+      client.release(); // Always release connection
+    }
   } catch (error) {
     console.error("Dashboard stats fetch error:", error);
     return NextResponse.json(
