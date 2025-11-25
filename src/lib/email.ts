@@ -1,69 +1,62 @@
 // lib/email.ts - Email configuration with provider support
 import nodemailer from "nodemailer";
 
-// Lazily create transporter to ensure latest env vars (important on serverless cold starts)
-let cachedTransporter: nodemailer.Transporter | null = null;
-
+/**
+ * Build transporter dynamically - NO CACHING in serverless to avoid stale configs
+ */
 function buildTransporter(): nodemailer.Transporter {
   const hostRaw = process.env.EMAIL_HOST?.trim();
   const serviceRaw = process.env.EMAIL_SERVICE?.trim();
-  let port: number | undefined = process.env.EMAIL_PORT ? parseInt(process.env.EMAIL_PORT, 10) : undefined;
-  const secureEnv = process.env.EMAIL_SECURE ? process.env.EMAIL_SECURE === 'true' : false;
+  const portStr = process.env.EMAIL_PORT?.trim();
+  const port = portStr ? parseInt(portStr, 10) : undefined;
+  const secureEnv = process.env.EMAIL_SECURE?.trim() === 'true';
   const user = process.env.EMAIL_USER?.trim();
   const pass = process.env.EMAIL_PASSWORD?.trim();
 
+  // Log config for debugging
+  console.log('[email] Building transporter with env:', {
+    hasHost: !!hostRaw,
+    host: hostRaw || 'not set',
+    port: port || 'not set',
+    hasUser: !!user,
+    hasPass: !!pass,
+    secure: secureEnv
+  });
+
   // Basic validation
   if (!user || !pass) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('[email] Missing EMAIL_USER or EMAIL_PASSWORD environment variables.');
-    }
+    console.error('[email] Missing EMAIL_USER or EMAIL_PASSWORD environment variables.');
+    throw new Error('Email configuration incomplete: missing credentials');
   }
 
-  // If host provided but port missing, infer defaults for known providers
-  if (hostRaw && !port) {
-    if (/brevo|sendinblue/i.test(hostRaw)) {
-      port = 587; // Brevo recommended port
-    }
-  }
-
-  // Decide path: explicit SMTP vs named service
-  let transporter: nodemailer.Transporter;
-  if (hostRaw && (port || port === 0)) {
-    transporter = nodemailer.createTransport({
+  // CRITICAL: Always use explicit SMTP when EMAIL_HOST is set
+  // Never fall back to Gmail service if Brevo credentials are configured
+  if (hostRaw) {
+    const smtpPort = port || 587; // Default to 587 for Brevo
+    console.log(`[email] Using SMTP: ${hostRaw}:${smtpPort}`);
+    
+    return nodemailer.createTransport({
       host: hostRaw,
-      port: port!,
-      secure: secureEnv || port === 465, // allow override via EMAIL_SECURE
-      auth: { user, pass },
-      // Brevo & many shared SMTP relays work with STARTTLS; relax TLS in serverless if needed
-      tls: { rejectUnauthorized: false },
-      // Some providers require explicit auth method
-      authMethod: 'LOGIN'
-    });
-  } else {
-    transporter = nodemailer.createTransport({
-      service: serviceRaw || 'gmail',
-      auth: { user, pass }
-    });
-  }
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[email] Transporter configuration', {
-      mode: hostRaw ? 'smtp' : 'service',
-      host: hostRaw || undefined,
-      port: port || undefined,
-      secure: secureEnv || (port === 465),
-      service: !hostRaw ? (serviceRaw || 'gmail') : undefined
+      port: smtpPort,
+      secure: secureEnv, // explicit secure flag
+      auth: { 
+        user, 
+        pass 
+      },
+      // Brevo specific settings
+      tls: { 
+        rejectUnauthorized: false,
+        ciphers: 'SSLv3'
+      }
     });
   }
 
-  return transporter;
-}
-
-function getTransporter(): nodemailer.Transporter {
-  if (!cachedTransporter) {
-    cachedTransporter = buildTransporter();
-  }
-  return cachedTransporter;
+  // Fallback to service-based (Gmail, etc.) only if no EMAIL_HOST
+  console.log(`[email] Using service: ${serviceRaw || 'gmail'}`);
+  return nodemailer.createTransport({
+    service: serviceRaw || 'gmail',
+    auth: { user, pass }
+  });
 }
 
 export interface EmailOptions {
@@ -76,14 +69,15 @@ export interface EmailOptions {
  * Send email using nodemailer with Brevo
  */
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
-  const requiredVars = ['EMAIL_USER', 'EMAIL_PASSWORD'];
+  const requiredVars = ['EMAIL_USER', 'EMAIL_PASSWORD', 'EMAIL_HOST'];
   const missing = requiredVars.filter(v => !process.env[v]);
   if (missing.length) {
     console.error('[email] Missing required env vars:', missing);
     return false;
   }
 
-  const transporter = getTransporter();
+  // Build fresh transporter every time in serverless (no cache)
+  const transporter = buildTransporter();
 
   // Optional verify in non-production for clearer diagnostics
   if (process.env.NODE_ENV !== 'production') {
