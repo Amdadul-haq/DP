@@ -26,8 +26,16 @@ interface LabSettings {
 }
 
 export default function Profile() {
-  const { user, subscription } = useUser();
-  const [loading, setLoading] = useState(false);
+  const { user, setUser } = useUser();
+  const [loadingLab, setLoadingLab] = useState(false);
+  const [savingPersonal, setSavingPersonal] = useState(false);
+  const [personal, setPersonal] = useState({
+    first_name: user?.firstName || "",
+    last_name: user?.lastName || "",
+    email: user?.email || "",
+    bmdc_reg: user?.bmdcReg || "",
+    specialty: user?.specialty || "",
+  });
   const [labSettings, setLabSettings] = useState<LabSettings>({
     lab_name_bengali: "",
     lab_name_english: "",
@@ -36,12 +44,19 @@ export default function Profile() {
     lab_email: "",
   });
 
-  // Fetch lab settings when component mounts
+  // Sync personal state when user context changes
   useEffect(() => {
+    setPersonal({
+      first_name: user?.firstName || "",
+      last_name: user?.lastName || "",
+      email: user?.email || "",
+      bmdc_reg: user?.bmdcReg || "",
+      specialty: user?.specialty || "",
+    });
     if (user?.id) {
       fetchLabSettings();
     }
-  }, [user?.id]);
+  }, [user]);
 
   const fetchLabSettings = async () => {
     try {
@@ -68,6 +83,59 @@ export default function Profile() {
     }
   };
 
+  const handlePersonalChange = (field: keyof typeof personal, value: string) => {
+    setPersonal((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const savePersonal = async () => {
+    setSavingPersonal(true);
+    try {
+      const response = await fetch("/api/profile/personal", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(personal),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const updated = data.personal;
+        // Update context user mapping
+        setUser({
+          id: updated.id.toString(),
+          email: updated.email,
+          firstName: updated.first_name,
+          lastName: updated.last_name,
+          bmdcReg: updated.bmdc_reg,
+            specialty: updated.specialty || "",
+          role: updated.role,
+          doctor_id: updated.doctor_id?.toString(),
+        });
+        // Persist to localStorage for reload
+        const storedRaw = localStorage.getItem("user");
+        const rawMerged = {
+          ...(storedRaw ? JSON.parse(storedRaw) : {}),
+          first_name: updated.first_name,
+          last_name: updated.last_name,
+          email: updated.email,
+          bmdc_reg: updated.bmdc_reg,
+          specialty: updated.specialty,
+        };
+        localStorage.setItem("user", JSON.stringify(rawMerged));
+        toast.success(data.message || "Personal information updated");
+      } else {
+        const err = await response.json();
+        toast.error(err.error || "Failed to update personal info");
+      }
+    } catch (error) {
+      console.error("Error updating personal info:", error);
+      toast.error("Failed to update personal info");
+    } finally {
+      setSavingPersonal(false);
+    }
+  };
+
   const handleLabSettingsChange = (field: keyof LabSettings, value: string) => {
     setLabSettings((prev) => ({
       ...prev,
@@ -76,7 +144,7 @@ export default function Profile() {
   };
 
   const saveLabSettings = async () => {
-    setLoading(true);
+    setLoadingLab(true);
     try {
       const response = await fetch("/api/profile/lab-settings", {
         method: "PUT",
@@ -97,7 +165,7 @@ export default function Profile() {
       console.error("Error saving lab settings:", error);
       toast.error("Failed to save lab settings");
     } finally {
-      setLoading(false);
+      setLoadingLab(false);
     }
   };
 
@@ -110,24 +178,30 @@ export default function Profile() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Personal Information Card */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+        {/* Personal Information Card (Editable) */}
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
-            <CardDescription>
-              Update your personal details and contact information
-            </CardDescription>
+            <CardDescription>Update your personal and professional details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" value={user?.firstName || ""} readOnly />
+                <Input
+                  id="firstName"
+                  value={personal.first_name}
+                  onChange={(e) => handlePersonalChange("first_name", e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" value={user?.lastName || ""} readOnly />
+                <Input
+                  id="lastName"
+                  value={personal.last_name}
+                  onChange={(e) => handlePersonalChange("last_name", e.target.value)}
+                />
               </div>
             </div>
             <div className="space-y-2">
@@ -135,70 +209,30 @@ export default function Profile() {
               <Input
                 id="email"
                 type="email"
-                defaultValue={user?.email || ""}
-                readOnly
+                value={personal.email}
+                onChange={(e) => handlePersonalChange("email", e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="bmdc">BMDC Registration Number</Label>
-              <Input id="bmdc" defaultValue={user?.bmdcReg || ""} readOnly />
+              <Input
+                id="bmdc"
+                value={personal.bmdc_reg}
+                onChange={(e) => handlePersonalChange("bmdc_reg", e.target.value)}
+              />
             </div>
-            <Button disabled>
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Professional Information Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Professional Information</CardTitle>
-            <CardDescription>
-              Update your professional details and specialization
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="specialty">Specialty</Label>
               <Input
                 id="specialty"
-                defaultValue={user?.specialty || ""}
-                readOnly
+                value={personal.specialty}
+                placeholder="e.g. Cardiology"
+                onChange={(e) => handlePersonalChange("specialty", e.target.value)}
               />
             </div>
-            {/* You can add more fields here as needed */}
-            {subscription && (
-              <div className="space-y-2">
-                <Label>Subscription Plan</Label>
-                <div className="p-3 border rounded-lg">
-                  <div className="font-semibold">{subscription.plan_name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Status: {subscription.status}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Billing Cycle: {subscription.billing_cycle}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Next Billing:{" "}
-                    {subscription.current_period_end
-                      ? new Date(
-                          subscription.current_period_end
-                        ).toLocaleDateString()
-                      : "-"}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Features:</div>
-                  <ul className="list-disc ml-5">
-                    {subscription.features?.map((feature, idx) => (
-                      <li key={idx}>{feature}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
-            <Button disabled>
+            <Button onClick={savePersonal} disabled={savingPersonal} className="w-full">
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              {savingPersonal ? "Saving..." : "Save Personal Information"}
             </Button>
           </CardContent>
         </Card>
@@ -271,11 +305,11 @@ export default function Profile() {
             </div>
             <Button
               onClick={saveLabSettings}
-              disabled={loading}
+              disabled={loadingLab}
               className="w-full"
             >
               <Save className="h-4 w-4 mr-2" />
-              {loading ? "Saving..." : "Save Lab Settings"}
+              {loadingLab ? "Saving..." : "Save Lab Settings"}
             </Button>
           </CardContent>
         </Card>
