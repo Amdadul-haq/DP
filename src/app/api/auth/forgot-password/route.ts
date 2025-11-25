@@ -34,10 +34,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (result.rows.length === 0) {
-      // For security, don't reveal if email exists or not
+      // SECURITY FIX: Return error for non-existent users (don't send email)
       return NextResponse.json(
-        { message: 'If an account exists with this email, you will receive a password reset code shortly.' },
-        { status: 200 }
+        { error: 'No account found with this email address.' },
+        { status: 404 }
       );
     }
 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       [resetCode, expiresAt, user.id]
     );
 
-    // Send email with reset code
+    // Send email with reset code (only to existing users)
     const fullName = `${user.first_name} ${user.last_name}`;
     const emailSent = await sendPasswordResetEmail(user.email, fullName, resetCode);
 
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       { 
         message: 'Password reset code sent to your email',
         email: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'), // Masked email
+        canResendAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes from now
       },
       { status: 200 }
     );

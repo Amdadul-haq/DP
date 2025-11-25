@@ -24,6 +24,9 @@ function VerifyResetCodeContent() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
+  const [canResendAt, setCanResendAt] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -37,7 +40,26 @@ function VerifyResetCodeContent() {
       return;
     }
     setEmail(decodeURIComponent(emailParam));
+    // Set initial 5-minute timer
+    setCanResendAt(Date.now() + 5 * 60 * 1000);
   }, [searchParams, router]);
+
+  // Countdown timer for resend
+  useEffect(() => {
+    if (!canResendAt) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((canResendAt - now) / 1000));
+      setTimeRemaining(remaining);
+
+      if (remaining === 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [canResendAt]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,9 +185,54 @@ function VerifyResetCodeContent() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => router.push("/forgot-password")}
+              onClick={async () => {
+                if (timeRemaining > 0) {
+                  toast.error("Please wait", {
+                    description: `You can request a new code in ${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`,
+                  });
+                  return;
+                }
+
+                setIsResending(true);
+                try {
+                  const response = await fetch("/api/auth/forgot-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email }),
+                  });
+
+                  const data = await response.json();
+
+                  if (response.ok) {
+                    setCanResendAt(new Date(data.canResendAt).getTime());
+                    toast.success("New code sent!", {
+                      description: "Check your email for a new reset code.",
+                    });
+                  } else {
+                    toast.error("Error", {
+                      description: data.error || "Failed to resend code.",
+                    });
+                  }
+                } catch (error) {
+                  toast.error("Error", {
+                    description: "Failed to resend code.",
+                  });
+                } finally {
+                  setIsResending(false);
+                }
+              }}
+              disabled={timeRemaining > 0 || isResending}
             >
-              Request new code
+              {isResending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                  Sending...
+                </>
+              ) : timeRemaining > 0 ? (
+                `Resend in ${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`
+              ) : (
+                "Resend code"
+              )}
             </Button>
           </div>
         </CardContent>
