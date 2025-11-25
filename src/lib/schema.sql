@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     bmdc_reg VARCHAR(50) UNIQUE NOT NULL,
     specialty VARCHAR(100),
     email_verified BOOLEAN DEFAULT FALSE,
+    password_reset_code VARCHAR(6),
+    reset_code_expires TIMESTAMP,
     role VARCHAR(20) DEFAULT 'doctor' CHECK (role IN ('doctor', 'assistant')),
     doctor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
