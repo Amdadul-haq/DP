@@ -31,6 +31,10 @@ function CheckoutPageContent() {
       const selectedPlan = getPlanById(planId);
       if (selectedPlan) {
         setPlan(selectedPlan);
+        // Force monthly billing for Free plan
+        if (selectedPlan.name === "Free") {
+          setBillingCycle("monthly");
+        }
       } else {
         toast.error("Invalid plan selected");
         router.push("/pricing");
@@ -88,8 +92,10 @@ function CheckoutPageContent() {
     );
   }
 
-  const price = billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
-  const period = billingCycle === "monthly" ? "month" : "year";
+  const isFree = plan.name === "Free";
+  // Free plan only has monthly option
+  const price = (isFree || billingCycle === "monthly") ? plan.monthlyPrice : plan.yearlyPrice;
+  const period = (isFree || billingCycle === "monthly") ? "month" : "year";
 
   return (
     <div className="min-h-screen py-20 bg-background">
@@ -112,30 +118,33 @@ function CheckoutPageContent() {
                   <p className="text-muted-foreground text-sm">{plan.description}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-foreground">${price}/{period}</p>
+                  <p className="font-bold text-foreground">৳{price}/{period}</p>
                   <p className="text-muted-foreground text-sm">{billingCycle} billing</p>
                 </div>
               </div>
               <div className="mb-6">
                 <h4 className="font-semibold text-foreground mb-3">Billing Cycle</h4>
+                {isFree && (
+                  <p className="text-sm text-amber-600 mb-2">Free plan is only available monthly</p>
+                )}
                 <div className="flex gap-4">
                   <Button variant={billingCycle === "monthly" ? "default" : "outline"} onClick={() => setBillingCycle("monthly")} className="flex-1">Monthly</Button>
-                  <Button variant={billingCycle === "yearly" ? "default" : "outline"} onClick={() => setBillingCycle("yearly")} className="flex-1">Yearly</Button>
+                  <Button variant={billingCycle === "yearly" ? "default" : "outline"} onClick={() => setBillingCycle("yearly")} className="flex-1" disabled={isFree}>Yearly</Button>
                 </div>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="text-foreground">${price}</span>
+                  <span className="text-foreground">৳{price}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tax</span>
-                  <span className="text-foreground">$0.00</span>
+                  <span className="text-foreground">৳0.00</span>
                 </div>
                 <div className="border-t pt-2 mt-2">
                   <div className="flex justify-between font-semibold">
                     <span className="text-foreground">Total</span>
-                    <span className="text-foreground">${price}/{period}</span>
+                    <span className="text-foreground">৳{price}/{period}</span>
                   </div>
                 </div>
               </div>

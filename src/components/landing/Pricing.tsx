@@ -145,19 +145,24 @@ export default function Pricing() {
           {filteredPlans.map((plan: Plan) => {
             const isSelected = selectedPlan === plan.name;
             const isHighlighted = plan.name === "Professional" && isSelected;
-            const price = billingCycle === "monthly" ? plan.price_monthly : plan.price_yearly;
-            const period = billingCycle === "monthly" ? "month" : "year";
+            const isFree = plan.name === "Free";
+            const isDisabled = isFree && billingCycle === "yearly";
+            // Free plan only has monthly option
+            const price = (isFree || billingCycle === "monthly") ? plan.price_monthly : plan.price_yearly;
+            const period = (isFree || billingCycle === "monthly") ? "month" : "year";
 
             return (
               <motion.div
                 key={plan.id}
                 variants={itemVariants}
-                className={`rounded-lg p-8 cursor-pointer transition-all ${
-                  isSelected
-                    ? "border-2 border-primary shadow-xl scale-105"
-                    : "border border-border hover:border-primary/50 hover:shadow-md"
+                className={`rounded-lg p-8 transition-all ${
+                  isDisabled
+                    ? "opacity-50 cursor-not-allowed border border-border"
+                    : isSelected
+                    ? "border-2 border-primary shadow-xl scale-105 cursor-pointer"
+                    : "border border-border hover:border-primary/50 hover:shadow-md cursor-pointer"
                 }`}
-                onClick={() => handlePlanSelect(plan.name)}
+                onClick={() => !isDisabled && handlePlanSelect(plan.name)}
               >
                 {isHighlighted && (
                   <div className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4">
@@ -170,6 +175,7 @@ export default function Pricing() {
                   </div>
                 )}
                 {billingCycle === "yearly" &&
+                  !isFree &&
                   plan.price_yearly < plan.price_monthly * 12 && (
                     <div className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full mb-4 ml-2">
                       Save {Math.round((1 - plan.price_yearly / (plan.price_monthly * 12)) * 100)}%
@@ -178,9 +184,12 @@ export default function Pricing() {
 
                 <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
                 <div className="flex items-baseline mb-4">
-                  <span className="text-4xl font-bold text-foreground">${price}</span>
+                  <span className="text-4xl font-bold text-foreground">৳{price}</span>
                   <span className="text-muted-foreground ml-1">/{period}</span>
                 </div>
+                {isFree && billingCycle === "yearly" && (
+                  <p className="text-sm text-amber-600 mb-2">Free plan is only available monthly</p>
+                )}
                 <p className="text-muted-foreground mb-6">{plan.description}</p>
                 <ul className="mb-8 space-y-3">
                   {Array.isArray(plan.features)
@@ -202,9 +211,12 @@ export default function Pricing() {
                       ))
                     : null}
                 </ul>
-                <button className="w-full py-3 px-4 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                onClick={handleGetStarted}>
-                  Get Started
+                <button 
+                  className="w-full py-3 px-4 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleGetStarted}
+                  disabled={isDisabled}
+                >
+                  {isDisabled ? "Not Available" : "Get Started"}
                 </button>
               </motion.div>
             );
