@@ -11,6 +11,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  // Turbopack is only used in dev mode by default
+  // Production builds use Webpack which has better Tailwind v4 support
 };
 
 export default nextConfig;
