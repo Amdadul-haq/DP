@@ -41,21 +41,21 @@ export const plans: Plan[] = [
       "Community support",
     ],
     monthlyPrice: 0,
-    yearlyPrice: 0,
+    yearlyPrice: 0, // Free plan doesn't have yearly option
   },
   {
     id: "2", // Changed from "starter" to "2" to match database
     name: "Starter",
     description: "For individual practitioners with basic needs",
     features: [
-      "Up to 30 prescriptions per month",
+      "Up to 100 prescriptions per month",
       "Basic medicine database access",
       "Patient management",
       "PDF download",
       "Email support",
     ],
-    monthlyPrice: 5,
-    yearlyPrice: 60,
+    monthlyPrice: 500,
+    yearlyPrice: 4500, // 10% discount (saves ৳500 from ৳5000)
   },
   {
     id: "3", // Changed from "professional" to "3" to match database
@@ -68,8 +68,8 @@ export const plans: Plan[] = [
       "Custom prescription templates",
       "Priority support",
     ],
-    monthlyPrice: 10,
-    yearlyPrice: 115,
+    monthlyPrice: 1000,
+    yearlyPrice: 8500, // 15% discount (saves ৳1500 from ৳10000)
     highlighted: true,
   },
 ];

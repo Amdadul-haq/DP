@@ -63,10 +63,14 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 -- ==========================
 -- 5) Default plans
 -- ==========================
+-- Prices are in BDT (Bangladeshi Taka)
+-- Free plan: Only monthly (yearly option disabled in frontend), 0 BDT
+-- Starter plan: ৳500/month, ৳4500/year (10% discount, saves ৳500), 100 prescriptions/month
+-- Professional plan: ৳1000/month, ৳8500/year (15% discount, saves ৳1500), unlimited prescriptions
 INSERT INTO plans (name, description, price_monthly, price_yearly, features, is_active) VALUES
 ('Free', 'For students and new practitioners getting started', 0, 0, '["Up to 5 prescriptions per month", "Basic medicine database access", "Patient management (up to 10 patients)", "PDF download", "Community support"]', true),
-('Starter', 'For individual practitioners with basic needs', 5, 60, '["Up to 30 prescriptions per month", "Basic medicine database access", "Patient management", "PDF download", "Email support"]', true),
-('Professional', 'For established practices with higher volume', 10, 115, '["Unlimited prescriptions", "Full medicine database access", "Advanced patient management", "Custom prescription templates", "Priority support"]', true)
+('Starter', 'For individual practitioners with basic needs', 500, 4500, '["Up to 100 prescriptions per month", "Basic medicine database access", "Patient management", "PDF download", "Email support"]', true),
+('Professional', 'For established practices with higher volume', 1000, 8500, '["Unlimited prescriptions", "Full medicine database access", "Advanced patient management", "Custom prescription templates", "Priority support"]', true)
 ON CONFLICT DO NOTHING;
 
 -- ==========================
