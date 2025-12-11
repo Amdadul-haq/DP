@@ -29,7 +29,16 @@ export async function GET(request: NextRequest): Promise<NextResponse<Subscripti
       );
     }
 
-    // Get active subscription
+    // Admins don't need subscriptions
+    if (user.role === 'admin') {
+      return NextResponse.json({
+        hasActiveSubscription: true, // Admins always have access
+        subscription: null,
+        isAdmin: true,
+      });
+    }
+
+    // Get active subscription for doctors
     const subscriptionResult = await pool.query(
       `SELECT s.*, p.name as plan_name, p.features
        FROM subscriptions s

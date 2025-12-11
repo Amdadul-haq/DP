@@ -18,20 +18,7 @@ export async function GET(request: NextRequest) {
     const token = authHeader.substring(7);
     const user = await getUserFromSession(token);
 
-    if (!user || !user.role || user.role !== 'doctor') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Check if user is admin
-    const adminCheck = await pool.query(
-      'SELECT is_admin FROM users WHERE id = $1',
-      [user.id]
-    );
-
-    if (!adminCheck.rows[0]?.is_admin) {
+    if (!user || user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized - Admin access required' },
         { status: 403 }

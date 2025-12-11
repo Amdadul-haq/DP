@@ -20,20 +20,7 @@ export async function POST(
     const token = authHeader.substring(7);
     const user = await getUserFromSession(token);
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is admin
-    const adminCheck = await pool.query(
-      'SELECT is_admin FROM users WHERE id = $1',
-      [user.id]
-    );
-
-    if (!adminCheck.rows[0]?.is_admin) {
+    if (!user || user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Unauthorized - Admin access required' },
         { status: 403 }

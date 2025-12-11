@@ -44,11 +44,15 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
 
         toast.success("Login successful!", {
-          description: "Welcome back to your dashboard.",
+          description: "Welcome back!",
         });
 
         // Role-based redirect
-        if (data.user.role === "assistant") {
+        if (data.user.role === "admin") {
+          // Admin → Admin Dashboard
+          router.push("/dashboard/admin/payment-requests");
+        } else if (data.user.role === "assistant") {
+          // Assistant → Patients Page
           router.push("/dashboard/patients");
         } else {
           // Doctor: check subscription status

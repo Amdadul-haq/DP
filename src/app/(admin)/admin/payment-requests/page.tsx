@@ -65,13 +65,13 @@ export default function AdminPaymentRequestsPage() {
 
     try {
       const user = JSON.parse(userStr);
-      if (user.role !== "doctor") {
-        toast.error("Unauthorized access");
-        router.push("/dashboard");
+      if (user.role !== "admin") {
+        toast.error("Unauthorized - Admin access required");
+        router.push("/login");
         return;
       }
       
-      // Check is_admin flag from backend API
+      // Verify with backend API
       const response = await fetch("/api/admin/check-access", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -79,12 +79,12 @@ export default function AdminPaymentRequestsPage() {
       });
 
       if (!response.ok) {
-        toast.error("You don't have admin access. Only admins can access this page.");
-        router.push("/dashboard");
+        toast.error("You don't have admin access");
+        router.push("/login");
       }
     } catch {
       toast.error("Failed to verify admin access");
-      router.push("/dashboard");
+      router.push("/login");
     }
   };
 

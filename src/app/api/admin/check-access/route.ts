@@ -27,23 +27,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Only doctors can be admins
-    if (user.role !== 'doctor') {
+    // Check if user has admin role
+    if (user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only doctors can have admin access' },
-        { status: 403 }
-      );
-    }
-
-    // Check if user has is_admin flag set to true
-    const adminCheck = await pool.query(
-      'SELECT is_admin FROM users WHERE id = $1',
-      [user.id]
-    );
-
-    if (!adminCheck.rows[0]?.is_admin) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
+        { error: 'Admin access required - Only admin users can access this panel' },
         { status: 403 }
       );
     }

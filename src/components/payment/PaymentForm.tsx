@@ -164,12 +164,22 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
             </p>
           </div>
 
+          <Alert className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              <p className="font-medium">⏳ Pending Approval</p>
+              <p className="text-sm mt-1">
+                You cannot access the dashboard until your payment is approved by our admin team.
+                Please wait for the verification process to complete.
+              </p>
+            </AlertDescription>
+          </Alert>
+
           <div className="flex gap-3">
-            <Button onClick={() => router.push("/dashboard")} className="flex-1">
-              Go to Dashboard
-            </Button>
-            <Button onClick={() => router.push("/pricing")} variant="outline" className="flex-1">
+            <Button onClick={() => router.push("/pricing")} className="flex-1">
               Back to Pricing
+            </Button>
+            <Button onClick={() => router.push("/")} variant="outline" className="flex-1">
+              Go to Home
             </Button>
           </div>
         </CardContent>

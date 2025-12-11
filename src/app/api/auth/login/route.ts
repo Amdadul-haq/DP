@@ -52,11 +52,20 @@ export async function POST(request: NextRequest) {
     // Remove password hash from response
     const { password_hash, ...userWithoutPassword } = user;
 
+    // Determine redirect path based on role
+    let redirectTo = '/dashboard';
+    if (user.role === 'admin') {
+      redirectTo = '/admin/payment-requests';
+    } else if (user.role === 'assistant') {
+      redirectTo = '/dashboard/patients';
+    }
+
     // Create response with cookie
     const response = NextResponse.json({
       message: 'Login successful',
       user: userWithoutPassword,
       token,
+      redirectTo, // Send redirect path to frontend
     });
 
     // Set token in cookie for server-side requests
