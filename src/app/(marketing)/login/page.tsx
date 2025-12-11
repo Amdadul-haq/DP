@@ -47,10 +47,10 @@ export default function Login() {
           description: "Welcome back!",
         });
 
-        // Role-based redirect
+        // Role-based redirect using redirectTo from backend
         if (data.user.role === "admin") {
-          // Admin → Admin Dashboard
-          router.push("/dashboard/admin/payment-requests");
+          // Admin → Admin Panel
+          router.push("/admin");
         } else if (data.user.role === "assistant") {
           // Assistant → Patients Page
           router.push("/dashboard/patients");

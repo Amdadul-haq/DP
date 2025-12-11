@@ -34,11 +34,6 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      // Fetch users count
-      const usersResponse = await fetch("/api/admin/users/stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
       // Fetch payment requests
       const paymentsResponse = await fetch("/api/admin/payment-requests", {
         headers: { Authorization: `Bearer ${token}` },
@@ -46,18 +41,18 @@ export default function AdminDashboard() {
 
       if (paymentsResponse.ok) {
         const paymentsData = await paymentsResponse.json();
-        const requests = paymentsData.paymentRequests || [];
+        const requests: Array<{ status: string }> = paymentsData.paymentRequests || [];
         
         setStats({
           totalUsers: 0, // Will implement later
           totalDoctors: 0, // Will implement later
           totalPaymentRequests: requests.length,
-          pendingPayments: requests.filter((r: any) => r.status === "pending").length,
-          approvedPayments: requests.filter((r: any) => r.status === "approved").length,
-          rejectedPayments: requests.filter((r: any) => r.status === "rejected").length,
+          pendingPayments: requests.filter((r) => r.status === "pending").length,
+          approvedPayments: requests.filter((r) => r.status === "approved").length,
+          rejectedPayments: requests.filter((r) => r.status === "rejected").length,
         });
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to load stats");
     } finally {
       setIsLoading(false);

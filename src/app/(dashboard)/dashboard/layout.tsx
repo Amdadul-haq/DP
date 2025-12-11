@@ -69,12 +69,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     }
 
     const checkAccess = async () => {
-      // Admin users: Only allow admin routes
+      // Admin users: Should NOT be in doctor dashboard - redirect to admin panel
       if (user.role === "admin") {
-        if (!pathname.startsWith("/dashboard/admin")) {
-          router.replace("/dashboard/admin/payment-requests");
-        }
-        setIsCheckingAccess(false);
+        router.replace("/admin");
         return;
       }
 

@@ -1,4 +1,4 @@
-// app/(dashboard)/dashboard/admin/payment-requests/page.tsx
+// app/admin/payment-requests/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
