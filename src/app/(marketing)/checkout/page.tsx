@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { getPlanById, type Plan } from "@/lib/plans";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import PaymentForm from "@/components/payment/PaymentForm";
 
 
 export default function CheckoutPage() {
@@ -24,6 +25,7 @@ function CheckoutPageContent() {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   useEffect(() => {
     const planId = searchParams.get("plan");
@@ -46,39 +48,49 @@ function CheckoutPageContent() {
 
   const handleSubscribe = async () => {
     if (!plan) return;
-    setIsLoading(true);
+    
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("Please login first");
       router.push("/login");
       return;
     }
-    try {
-      const response = await fetch("/api/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          planId: plan.id,
-          billingCycle,
-        }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        toast.success("Subscription created successfully!");
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1500);
-      } else {
-        throw new Error(data.error || "Failed to create subscription");
+
+    const isFree = plan.name === "Free";
+    
+    // If Free plan, create subscription directly (no payment needed)
+    if (isFree) {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            planId: plan.id,
+            billingCycle,
+          }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+          toast.success("Subscription activated!");
+          setTimeout(() => {
+            router.push("/dashboard");
+          }, 1500);
+        } else {
+          throw new Error(data.error || "Failed to create subscription");
+        }
+      } catch (error) {
+        toast.error("Failed to create subscription. Please try again.");
+        console.error("Checkout error:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      toast.error("Failed to create subscription. Please try again.");
-      console.error("Checkout error:", error);
-    } finally {
-      setIsLoading(false);
+    } else {
+      // For paid plans, show payment form
+      setShowPaymentForm(true);
     }
   };
 
@@ -96,6 +108,21 @@ function CheckoutPageContent() {
   // Free plan only has monthly option
   const price = (isFree || billingCycle === "monthly") ? plan.monthlyPrice : plan.yearlyPrice;
   const period = (isFree || billingCycle === "monthly") ? "month" : "year";
+
+  // Show payment form for paid plans
+  if (showPaymentForm && !isFree) {
+    return (
+      <div className="min-h-screen py-20 bg-background">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <PaymentForm 
+            plan={plan} 
+            billingCycle={billingCycle}
+            onBack={() => setShowPaymentForm(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-20 bg-background">
@@ -164,9 +191,13 @@ function CheckoutPageContent() {
                 ))}
               </ul>
               <Button className="w-full" size="lg" onClick={handleSubscribe} disabled={isLoading}>
-                {isLoading ? "Processing..." : "Confirm & Subscribe"}
+                {isLoading ? "Processing..." : isFree ? "Confirm & Subscribe" : "Proceed to Payment"}
               </Button>
-              <p className="text-sm text-muted-foreground mt-4 text-center">Your subscription will automatically renew until canceled.</p>
+              <p className="text-sm text-muted-foreground mt-4 text-center">
+                {isFree 
+                  ? "Your free subscription will automatically renew until canceled."
+                  : "You will be redirected to complete your payment."}
+              </p>
             </CardContent>
           </Card>
         </div>
