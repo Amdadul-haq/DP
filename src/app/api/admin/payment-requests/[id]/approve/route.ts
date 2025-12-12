@@ -57,6 +57,20 @@ export async function POST(
     try {
       await client.query('BEGIN');
 
+      // Double-check status within transaction to prevent race condition
+      const lockCheck = await client.query(
+        'SELECT status FROM payment_requests WHERE id = $1 FOR UPDATE',
+        [id]
+      );
+
+      if (lockCheck.rows.length === 0 || lockCheck.rows[0].status !== 'pending') {
+        await client.query('ROLLBACK');
+        return NextResponse.json(
+          { error: 'Payment request has already been processed' },
+          { status: 400 }
+        );
+      }
+
       // Update payment request status
       await client.query(
         `UPDATE payment_requests 
