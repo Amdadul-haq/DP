@@ -10,7 +10,7 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 1, // Critical for Supabase free tier + serverless
   idleTimeoutMillis: 10000, // Close idle connections after 10s
-  connectionTimeoutMillis: 5000, // Fail fast if can't connect
+  connectionTimeoutMillis: 20000, // 20 seconds for complex transactions in production
   allowExitOnIdle: true // Allow pool to close when all clients idle
 });
 
