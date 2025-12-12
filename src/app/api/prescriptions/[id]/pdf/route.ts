@@ -4,7 +4,7 @@ import { verifyJWT } from "@/lib/auth";
 import { generatePrescriptionHTML } from "@/app/utils/prescription-template";
 
 async function getBrowser() {
-  if (process.env.VERCEL_ENV) {
+  if (process.env.VERCEL_ENV || process.env.NODE_ENV === "production") {
     // --- Production (Vercel) ---
     const chromium = (await import("@sparticuz/chromium")).default;
     const puppeteer = await import("puppeteer-core");
@@ -66,8 +66,8 @@ export async function GET(
     // Set the content and wait for fonts to load
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
-    // Wait for fonts to be loaded - CRITICAL for Bengali font rendering
-    await page.evaluateHandle('document.fonts.ready');
+    // Wait a bit for fonts to load (Bengali font rendering)
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const pdfBuffer = await page.pdf({
       format: "a4",

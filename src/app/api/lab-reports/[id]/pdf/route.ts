@@ -304,8 +304,8 @@ export async function GET(
     // Set the content and wait for fonts to load
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
-    // Wait for fonts to be loaded - CRITICAL for Bengali font rendering
-    await page.evaluateHandle('document.fonts.ready');
+    // Wait a bit for fonts to load (Bengali font rendering)
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const pdfBuffer = await page.pdf({
       format: "a4",
