@@ -1,17 +1,4 @@
--- ============================================
--- DIGITAL PRESCRIPTION - COMPLETE DATABASE SCHEMA
--- ============================================
--- This is the ONLY SQL file you need to execute
--- Run this on a fresh database OR on existing database (it's safe - uses IF NOT EXISTS)
---
--- For Supabase:
--- 1. Go to SQL Editor in your Supabase dashboard
--- 2. Copy and paste this entire file
--- 3. Click "Run"
---
--- Last Updated: December 12, 2025
--- ============================================
-
+--src/lib/schema.sql
 -- ==========================
 -- 1) Users table
 -- ==========================
@@ -88,10 +75,6 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 -- ==========================
 -- 5) Default plans
 -- ==========================
--- Prices are in BDT (Bangladeshi Taka)
--- Free plan: Only monthly (yearly option disabled in frontend), 0 BDT
--- Starter plan: ৳500/month, ৳4500/year (10% discount, saves ৳500), 100 prescriptions/month
--- Professional plan: ৳1000/month, ৳8500/year (15% discount, saves ৳1500), unlimited prescriptions
 INSERT INTO plans (name, description, price_monthly, price_yearly, features, is_active) VALUES
 ('Free', 'For students and new practitioners getting started', 0, 0, '["Up to 5 prescriptions per month", "Basic medicine database access", "Patient management (up to 10 patients)", "PDF download", "Community support"]', true),
 ('Starter', 'For individual practitioners with basic needs', 500, 4500, '["Up to 100 prescriptions per month", "Basic medicine database access", "Patient management", "PDF download", "Email support"]', true),
@@ -160,7 +143,7 @@ CREATE INDEX IF NOT EXISTS idx_patients_vitals_patient_id ON patients_vitals(pat
 CREATE INDEX IF NOT EXISTS idx_patients_vitals_created_at ON patients_vitals(created_at);
 
 -- ==========================
--- 9) Prescriptions table (UPDATED)
+-- 9) Prescriptions table
 -- ==========================
 CREATE TABLE IF NOT EXISTS prescriptions (
     id SERIAL PRIMARY KEY,
@@ -174,7 +157,7 @@ CREATE TABLE IF NOT EXISTS prescriptions (
     weight TEXT,
     temperature TEXT,
     tests TEXT,
-    advice TEXT, -- ADDED: This is the missing column
+    advice TEXT, 
     next_visit_date DATE,
     status VARCHAR(20) NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','completed')),
     created_by INT REFERENCES users(id),
@@ -287,18 +270,3 @@ FOREIGN KEY (payment_request_id)
 REFERENCES payment_requests(id) 
 ON DELETE SET NULL;
 
--- ==========================
--- IMPORTANT NOTES
--- ==========================
--- 1. After running this schema, you need to create an admin user manually
--- 2. Admin users require: role='admin' and don't need bmdc_reg
--- 3. Use the hash-password.js script to generate password hash
--- 4. Update payment_config with your actual bKash/Nagad/Rocket numbers
--- 5. Telegram configuration is in .env.local file:
---    TELEGRAM_ENABLED=true/false
---    TELEGRAM_BOT_TOKEN=your_bot_token
---    TELEGRAM_ADMIN_CHAT_ID=your_admin_chat_id
-
--- ==========================
--- END OF SCHEMA
--- ==========================

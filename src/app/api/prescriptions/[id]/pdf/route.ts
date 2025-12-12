@@ -8,6 +8,7 @@ async function getBrowser() {
     // --- Production (Vercel) ---
     const chromium = (await import("@sparticuz/chromium")).default;
     const puppeteer = await import("puppeteer-core");
+    
     return puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath(),
