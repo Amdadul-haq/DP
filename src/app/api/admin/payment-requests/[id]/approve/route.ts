@@ -55,6 +55,8 @@ export async function POST(
     const client = await pool.connect();
     
     try {
+      // Set statement timeout to 15 seconds to prevent hanging transactions
+      await client.query('SET statement_timeout = 15000');
       await client.query('BEGIN');
 
       // Double-check status within transaction to prevent race condition
