@@ -220,13 +220,17 @@ function generateLabReportHTML(report: LabReportWithCustomer, labSettings: LabSe
 
 async function getBrowser() {
   if (process.env.VERCEL_ENV) {
-    // --- Production (Vercel) ---
-    const chromium = (await import("@sparticuz/chromium")).default;
+    // --- Production (Vercel) - Use minimal package with remote binary ---
+    const chromium = (await import("@sparticuz/chromium-min")).default;
     const puppeteer = await import("puppeteer-core");
+    
+    // Load Chromium from GitHub releases (this avoids 50MB Vercel limit)
     return puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+      executablePath: await chromium.executablePath(
+        "https://github.com/Sparticuz/chromium/releases/download/v138.0.0/chromium-v138.0.0-pack.tar"
+      ),
+      headless: "shell",
     });
   } else {
     // --- Local development ---
