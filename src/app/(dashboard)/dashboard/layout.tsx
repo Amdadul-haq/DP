@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useUser, UserProvider } from "@/context/UserContext";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Sidebar,
@@ -53,23 +54,83 @@ export default function DashboardLayout({
 }
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
-  const { user } = useUser();
+  const { user, subscription, isLoadingSubscription, hasPendingPayment } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
 
-  // Route guard: only restrict assistants, not doctors
+  // Route guard: Handle different roles
   useEffect(() => {
-    if (
-      user &&
-      user.role === "assistant" &&
-      !pathname.startsWith("/dashboard/patients")
-    ) {
-      router.replace("/dashboard/patients");
+    if (!user) {
+      setIsCheckingAccess(false);
+      return;
     }
-    // No restriction for doctors
-  }, [user, pathname, router]);
+
+    const checkAccess = async () => {
+      // Admin users: Should NOT be in doctor dashboard - redirect to admin panel
+      if (user.role === "admin") {
+        router.replace("/admin");
+        return;
+      }
+
+      // Assistant users: Only allow patients route
+      if (user.role === "assistant") {
+        if (!pathname.startsWith("/dashboard/patients")) {
+          router.replace("/dashboard/patients");
+        }
+        setIsCheckingAccess(false);
+        return;
+      }
+
+      // Doctor users: Check subscription
+      if (user.role === "doctor") {
+        // Allow access to billing page to submit payment
+        if (pathname === "/dashboard/billing") {
+          setIsCheckingAccess(false);
+          return;
+        }
+
+        // CRITICAL: Wait for subscription check to complete before making decision
+        if (isLoadingSubscription) {
+          // Still loading, keep showing loading state - DON'T set isCheckingAccess to false
+          setIsCheckingAccess(true);
+          return;
+        }
+
+        // AFTER loading is complete, check subscription
+        if (!subscription) {
+          console.log("[Dashboard] No active subscription found");
+          
+          // Check if user has pending payment request
+          if (hasPendingPayment) {
+            console.log("[Dashboard] User has pending payment, blocking access");
+            toast.error("Payment Approval Pending", {
+              description: "Your payment is under review. You'll get access once the admin approves it.",
+              duration: 5000,
+            });
+            router.replace("/pricing");
+            return;
+          }
+          
+          // No subscription and no pending payment
+          console.log("[Dashboard] Redirecting to pricing");
+          toast.error("Subscription Required", {
+            description: "Please purchase a subscription to access the dashboard.",
+          });
+          router.replace("/pricing");
+          return;
+        }
+
+        // Has valid subscription
+        console.log("[Dashboard] Active subscription found:", subscription.plan_name);
+        setIsCheckingAccess(false);
+      }
+    };
+
+    checkAccess();
+  }, [user, subscription, isLoadingSubscription, hasPendingPayment, pathname, router]);
 
   // Get the current page title for the header
   const getPageTitle = () => {
@@ -81,13 +142,28 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
     return navItem?.name || "Dashboard";
   };
 
-  // Assistants only see Patients
-  const filteredNavigation =
-    user && user.role === "assistant"
+  // Filter navigation based on role
+  const filteredNavigation = user
+    ? user.role === "admin"
+      ? [] // Admins don't see doctor navigation (they only see admin panel)
+      : user.role === "assistant"
       ? navigation.filter((item) => item.name === "Patients")
       : navigation.filter(
           (item) => !(!user && ["Billing", "Assistants"].includes(item.name))
-        );
+        )
+    : [];
+
+  // Show loading state while checking access
+  if (isCheckingAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background">

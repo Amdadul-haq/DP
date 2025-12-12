@@ -50,13 +50,23 @@ export async function POST(request: NextRequest) {
     const token = await createJWT({ userId: user.id });
 
     // Remove password hash from response
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password_hash, ...userWithoutPassword } = user;
+
+    // Determine redirect path based on role
+    let redirectTo = '/dashboard';
+    if (user.role === 'admin') {
+      redirectTo = '/admin';
+    } else if (user.role === 'assistant') {
+      redirectTo = '/dashboard/patients';
+    }
 
     // Create response with cookie
     const response = NextResponse.json({
       message: 'Login successful',
       user: userWithoutPassword,
       token,
+      redirectTo, // Send redirect path to frontend
     });
 
     // Set token in cookie for server-side requests

@@ -24,6 +24,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Prevent admin creation via registration (admins must be created via backend/database)
+    if (email.toLowerCase().includes('admin') || bmdcReg.toLowerCase() === 'admin') {
+      return NextResponse.json(
+        { error: 'Invalid registration data' },
+        { status: 400 }
+      );
+    }
+
     // Check if user already exists
     const existingUser = await pool.query(
       'SELECT id FROM users WHERE email = $1 OR bmdc_reg = $2',
