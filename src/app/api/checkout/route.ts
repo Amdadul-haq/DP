@@ -55,33 +55,21 @@ export async function POST(request: NextRequest) {
 
     const plan = planResult.rows[0];
 
-    // Calculate period dates
-    const currentPeriodStart = new Date();
-    const currentPeriodEnd = new Date();
-    if (billingCycle === 'monthly') {
-      currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
-    } else {
-      currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
-    }
-
-    // Create subscription
-    const subscriptionResult = await pool.query(
-      `INSERT INTO subscriptions 
-       (user_id, plan_id, billing_cycle, current_period_start, current_period_end, status)
-       VALUES ($1, $2, $3, $4, $5, 'active')
-       RETURNING *`,
-      [user.id, plan.id, billingCycle, currentPeriodStart, currentPeriodEnd]
-    );
-
-    const subscription = subscriptionResult.rows[0];
+    // NOTE: We do NOT create subscriptions here anymore!
+    // Subscriptions are only created when admin approves payment requests.
+    // This endpoint just validates the plan selection.
 
     return NextResponse.json({
       success: true,
-      subscription: {
-        ...subscription,
-        plan_name: plan.name,
+      message: 'Plan validated successfully. Please proceed to payment.',
+      plan: {
+        id: plan.id,
+        name: plan.name,
+        price_monthly: plan.price_monthly,
+        price_yearly: plan.price_yearly,
         features: plan.features,
       },
+      billingCycle,
     });
   } catch (error) {
     console.error('Checkout error:', error);

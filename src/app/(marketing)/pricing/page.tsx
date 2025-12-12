@@ -131,7 +131,8 @@ export default function PricingPage() {
       const data = await response.json();
 
       if (response.ok) {
-        router.push(`/checkout?plan=${planId}`);
+        // Plan validated, proceed to checkout/payment page
+        router.push(`/checkout?plan=${planId}&cycle=${billingCycle}`);
       } else {
         if (response.status === 401) {
           // Token is invalid, redirect to login
@@ -140,7 +141,7 @@ export default function PricingPage() {
           toast.error("Session expired. Please login again.");
           router.push("/login");
         } else {
-          throw new Error(data.error || "Failed to create subscription");
+          throw new Error(data.error || "Failed to validate plan");
         }
       }
     } catch (error) {

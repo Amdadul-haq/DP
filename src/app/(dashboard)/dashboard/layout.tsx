@@ -54,7 +54,7 @@ export default function DashboardLayout({
 }
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
-  const { user, subscription } = useUser();
+  const { user, subscription, isLoadingSubscription, hasPendingPayment } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
@@ -92,20 +92,45 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // For other routes, check subscription
+        // CRITICAL: Wait for subscription check to complete before making decision
+        if (isLoadingSubscription) {
+          // Still loading, keep showing loading state - DON'T set isCheckingAccess to false
+          setIsCheckingAccess(true);
+          return;
+        }
+
+        // AFTER loading is complete, check subscription
         if (!subscription) {
+          console.log("[Dashboard] No active subscription found");
+          
+          // Check if user has pending payment request
+          if (hasPendingPayment) {
+            console.log("[Dashboard] User has pending payment, blocking access");
+            toast.error("Payment Approval Pending", {
+              description: "Your payment is under review. You'll get access once the admin approves it.",
+              duration: 5000,
+            });
+            router.replace("/pricing");
+            return;
+          }
+          
+          // No subscription and no pending payment
+          console.log("[Dashboard] Redirecting to pricing");
           toast.error("Subscription Required", {
             description: "Please purchase a subscription to access the dashboard.",
           });
           router.replace("/pricing");
           return;
         }
+
+        // Has valid subscription
+        console.log("[Dashboard] Active subscription found:", subscription.plan_name);
         setIsCheckingAccess(false);
       }
     };
 
     checkAccess();
-  }, [user, subscription, pathname, router]);
+  }, [user, subscription, isLoadingSubscription, hasPendingPayment, pathname, router]);
 
   // Get the current page title for the header
   const getPageTitle = () => {

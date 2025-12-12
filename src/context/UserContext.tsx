@@ -17,6 +17,8 @@ interface User {
 interface UserContextType {
   user: User | null;
   subscription: SubscriptionWithPlan | null;
+  isLoadingSubscription: boolean;
+  hasPendingPayment: boolean;
   setUser: (user: User | null) => void;
   setSubscription: (sub: SubscriptionWithPlan | null) => void;
 }
@@ -27,6 +29,8 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionWithPlan | null>(null);
+  const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [hasPendingPayment, setHasPendingPayment] = useState(false);
 
   useEffect(() => {
     // Load user from localStorage after register/checkout
@@ -51,21 +55,62 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
 
-    // Optionally, fetch subscription from API if token exists
+    // Fetch subscription from API if token exists
     const token = localStorage.getItem("token");
-    if (token) {
+    if (token && storedUser) {
+      const userRole = JSON.parse(storedUser).role;
+      
+      // Admins and assistants don't need subscription checks
+      if (userRole === "admin" || userRole === "assistant") {
+        setIsLoadingSubscription(false);
+        return;
+      }
+
+      // For doctors, fetch subscription
+      setIsLoadingSubscription(true);
+      console.log("[UserContext] Fetching subscription for doctor...");
+      
       fetch("/api/auth/subscription", {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Subscription fetch failed: ${res.status}`);
+          }
+          return res.json();
+        })
         .then((data) => {
-          if (data.subscription) setSubscription(data.subscription);
+          console.log("[UserContext] Subscription data received:", {
+            hasActive: data.hasActiveSubscription,
+            planName: data.subscription?.plan_name,
+            hasPending: data.hasPendingPayment
+          });
+          
+          // Set subscription if it exists, or set to null if no active subscription
+          if (data.hasActiveSubscription && data.subscription) {
+            setSubscription(data.subscription);
+            setHasPendingPayment(false);
+          } else {
+            setSubscription(null);
+            // Check if user has pending payment waiting for approval
+            setHasPendingPayment(data.hasPendingPayment || false);
+          }
+        })
+        .catch((error) => {
+          console.error("[UserContext] Failed to fetch subscription:", error);
+          setSubscription(null);
+        })
+        .finally(() => {
+          console.log("[UserContext] Subscription loading complete");
+          setIsLoadingSubscription(false);
         });
+    } else {
+      setIsLoadingSubscription(false);
     }
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, subscription, setUser, setSubscription }}>
+    <UserContext.Provider value={{ user, subscription, isLoadingSubscription, hasPendingPayment, setUser, setSubscription }}>
       {children}
     </UserContext.Provider>
   );

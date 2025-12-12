@@ -52,9 +52,24 @@ export async function GET(request: NextRequest): Promise<NextResponse<Subscripti
     const hasActiveSubscription = subscriptionResult.rows.length > 0;
     const subscription: SubscriptionWithPlan | null = hasActiveSubscription ? subscriptionResult.rows[0] : null;
 
+    // Check for pending payment requests
+    const pendingPaymentResult = await pool.query(
+      `SELECT id, status, created_at
+       FROM payment_requests
+       WHERE user_id = $1 AND status = 'pending'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [user.id]
+    );
+
+    const hasPendingPayment = pendingPaymentResult.rows.length > 0;
+    const pendingPayment = hasPendingPayment ? pendingPaymentResult.rows[0] : null;
+
     return NextResponse.json({
       hasActiveSubscription,
       subscription,
+      hasPendingPayment,
+      pendingPayment,
     });
   } catch (error) {
     console.error('Subscription check error:', error);
