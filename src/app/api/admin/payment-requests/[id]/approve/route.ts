@@ -140,10 +140,10 @@ export async function POST(
         message: 'Payment request approved and subscription activated',
       });
 
-      // Send Telegram notification asynchronously (fire and forget)
+      // Send notifications asynchronously (fire and forget) - both Telegram and Email
       // Use Promise without await to make it non-blocking
       pool.query(
-        `SELECT u.first_name, u.last_name, p.name as plan_name
+        `SELECT u.first_name, u.last_name, u.email, p.name as plan_name
          FROM users u, plans p
          WHERE u.id = $1 AND p.id = $2`,
         [paymentRequest.user_id, paymentRequest.plan_id]
@@ -151,8 +151,30 @@ export async function POST(
         if (result.rows.length > 0) {
           const userName = `${result.rows[0].first_name} ${result.rows[0].last_name}`;
           const planName = result.rows[0].plan_name;
+          const userEmail = result.rows[0].email;
+          
+          // Send Telegram notification
           sendPaymentApprovalNotification(userName, planName, adminNote).catch((err) => {
             console.error('Telegram notification failed:', err);
+          });
+
+          // Send Email notification to user
+          import('@/lib/email').then(({ sendPaymentApprovalEmailToUser }) => {
+            const amount = paymentRequest.billing_cycle === 'monthly' 
+              ? paymentRequest.amount 
+              : paymentRequest.amount;
+            
+            sendPaymentApprovalEmailToUser(
+              userEmail,
+              userName,
+              planName,
+              paymentRequest.billing_cycle,
+              amount,
+              currentPeriodEnd,
+              adminNote
+            ).catch((err) => {
+              console.error('Email notification to user failed:', err);
+            });
           });
         }
       }).catch((err) => {

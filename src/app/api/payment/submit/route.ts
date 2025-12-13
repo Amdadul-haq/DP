@@ -144,24 +144,44 @@ export async function POST(request: NextRequest) {
 
     const paymentRequest = paymentRequestResult.rows[0];
 
+    // Send notifications to admin (Telegram + Email) - non-blocking
+    const userName = `${user.first_name} ${user.last_name}`;
+    const notificationData = {
+      userName,
+      userEmail: user.email,
+      planName: plan.name,
+      amount: amount,
+      billingCycle: billingCycle,
+      paymentMethod: paymentMethod,
+      transactionId: transactionId,
+      senderNumberLast4: senderNumberLast4,
+      recipientNumber: paymentConfig.account_number,
+      requestId: paymentRequest.id,
+    };
+
     // Send Telegram notification (if configured)
-    try {
-      await sendPaymentRequestNotification({
-        userName: `${user.first_name} ${user.last_name}`,
-        userEmail: user.email,
-        planName: plan.name,
-        amount: amount,
-        billingCycle: billingCycle,
-        paymentMethod: paymentMethod,
-        transactionId: transactionId,
-        senderNumberLast4: senderNumberLast4,
-        recipientNumber: paymentConfig.account_number,
-        requestId: paymentRequest.id,
+    sendPaymentRequestNotification(notificationData).catch((error) => {
+      console.error('Telegram notification failed:', error);
+    });
+
+    // Send Email notification to admin
+    // Get admin email from environment or use a default
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@digitalprescription.com';
+    import('@/lib/email').then(({ sendPaymentRequestEmailToAdmin }) => {
+      sendPaymentRequestEmailToAdmin(
+        adminEmail,
+        userName,
+        user.email,
+        plan.name,
+        amount,
+        billingCycle,
+        paymentMethod,
+        transactionId,
+        paymentRequest.id
+      ).catch((error) => {
+        console.error('Admin email notification failed:', error);
       });
-    } catch (telegramError) {
-      // Log but don't fail the request if Telegram notification fails
-      console.error('Telegram notification failed:', telegramError);
-    }
+    });
 
     return NextResponse.json({
       success: true,
