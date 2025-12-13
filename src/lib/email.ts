@@ -252,7 +252,7 @@ export async function sendPaymentApprovalEmailToUser(
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #28a745; border-bottom: 2px solid #28a745; padding-bottom: 10px;">✓ Payment Approved</h2>
       <p>Hello ${userName},</p>
-      <p>Great news! Your payment request has been approved and your subscription is now active.</p>
+      <p>Congratulations! Your payment request has been approved and your subscription is now active.</p>
       
       <div style="background-color: #d4edda; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745;">
         <h3 style="color: #155724; margin-top: 0;">Subscription Details</h3>
@@ -270,7 +270,7 @@ export async function sendPaymentApprovalEmailToUser(
       ` : ''}
       
       <p style="margin: 20px 0;">
-        <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard" 
+        <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/login" 
            style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
           Access Your Dashboard
         </a>
