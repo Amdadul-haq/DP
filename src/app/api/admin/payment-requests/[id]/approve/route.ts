@@ -73,14 +73,6 @@ export async function POST(
         );
       }
 
-      // Update payment request status
-      await client.query(
-        `UPDATE payment_requests 
-         SET status = 'approved', admin_id = $1, admin_note = $2, reviewed_at = NOW(), updated_at = NOW()
-         WHERE id = $3`,
-        [user.id, adminNote || null, id]
-      );
-
       // Calculate subscription period
       const currentPeriodStart = new Date();
       const currentPeriodEnd = new Date();
@@ -91,13 +83,22 @@ export async function POST(
         currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
       }
 
-      // Create or update subscription
-      const existingSubscription = await client.query(
-        'SELECT id FROM subscriptions WHERE user_id = $1 AND plan_id = $2 AND status = $3',
-        [paymentRequest.user_id, paymentRequest.plan_id, 'active']
+      // Update payment request status
+      await client.query(
+        `UPDATE payment_requests 
+         SET status = 'approved', admin_id = $1, admin_note = $2, reviewed_at = NOW(), updated_at = NOW()
+         WHERE id = $3`,
+        [user.id, adminNote || null, id]
       );
 
-      if (existingSubscription.rows.length > 0) {
+      // Check for existing active subscription - use single query
+      const existingSubResult = await client.query(
+        `SELECT id FROM subscriptions 
+         WHERE user_id = $1 AND plan_id = $2 AND status = 'active'`,
+        [paymentRequest.user_id, paymentRequest.plan_id]
+      );
+
+      if (existingSubResult.rows.length > 0) {
         // Update existing subscription
         await client.query(
           `UPDATE subscriptions 
@@ -109,7 +110,7 @@ export async function POST(
             currentPeriodStart,
             currentPeriodEnd,
             paymentRequest.id,
-            existingSubscription.rows[0].id
+            existingSubResult.rows[0].id
           ]
         );
       } else {
@@ -129,37 +130,36 @@ export async function POST(
         );
       }
 
+      // Commit transaction
       await client.query('COMMIT');
 
-      // Get user details for notification
-      const userResult = await pool.query(
-        'SELECT first_name, last_name FROM users WHERE id = $1',
-        [paymentRequest.user_id]
-      );
-
-      // Get plan details for notification
-      const planResult = await pool.query(
-        'SELECT name FROM plans WHERE id = $1',
-        [paymentRequest.plan_id]
-      );
-
-      // Send Telegram notification (if configured)
-      if (userResult.rows.length > 0 && planResult.rows.length > 0) {
-        const userName = `${userResult.rows[0].first_name} ${userResult.rows[0].last_name}`;
-        const planName = planResult.rows[0].name;
-        
-        try {
-          await sendPaymentApprovalNotification(userName, planName, adminNote);
-        } catch (telegramError) {
-          // Log but don't fail if notification fails
-          console.error('Telegram notification failed:', telegramError);
-        }
-      }
-
-      return NextResponse.json({
+      // CRITICAL: Return success response immediately
+      // Don't await any queries after this point
+      const successResponse = NextResponse.json({
         success: true,
         message: 'Payment request approved and subscription activated',
       });
+
+      // Send Telegram notification asynchronously (fire and forget)
+      // Use Promise without await to make it non-blocking
+      pool.query(
+        `SELECT u.first_name, u.last_name, p.name as plan_name
+         FROM users u, plans p
+         WHERE u.id = $1 AND p.id = $2`,
+        [paymentRequest.user_id, paymentRequest.plan_id]
+      ).then((result) => {
+        if (result.rows.length > 0) {
+          const userName = `${result.rows[0].first_name} ${result.rows[0].last_name}`;
+          const planName = result.rows[0].plan_name;
+          sendPaymentApprovalNotification(userName, planName, adminNote).catch((err) => {
+            console.error('Telegram notification failed:', err);
+          });
+        }
+      }).catch((err) => {
+        console.error('Failed to fetch user details for notification:', err);
+      });
+
+      return successResponse;
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
