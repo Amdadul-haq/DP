@@ -67,35 +67,46 @@ export async function POST(
       [user.id, adminNote, id]
     );
 
-    // Get user details for notification
-    const userResult = await pool.query(
-      'SELECT first_name, last_name FROM users WHERE id = $1',
-      [paymentRequest.user_id]
-    );
-
-    // Get plan details for notification
-    const planResult = await pool.query(
-      'SELECT name FROM plans WHERE id = $1',
-      [paymentRequest.plan_id]
-    );
-
-    // Send Telegram notification (if configured)
-    if (userResult.rows.length > 0 && planResult.rows.length > 0) {
-      const userName = `${userResult.rows[0].first_name} ${userResult.rows[0].last_name}`;
-      const planName = planResult.rows[0].name;
-      
-      try {
-        await sendPaymentRejectionNotification(userName, planName, adminNote);
-      } catch (telegramError) {
-        // Log but don't fail if notification fails
-        console.error('Telegram notification failed:', telegramError);
-      }
-    }
-
-    return NextResponse.json({
+    // Return success response immediately
+    const successResponse = NextResponse.json({
       success: true,
       message: 'Payment request rejected',
     });
+
+    // Send notifications asynchronously (non-blocking) - both Telegram and Email
+    pool.query(
+      `SELECT u.first_name, u.last_name, u.email, p.name as plan_name
+       FROM users u, plans p
+       WHERE u.id = $1 AND p.id = $2`,
+      [paymentRequest.user_id, paymentRequest.plan_id]
+    ).then((result) => {
+      if (result.rows.length > 0) {
+        const userName = `${result.rows[0].first_name} ${result.rows[0].last_name}`;
+        const planName = result.rows[0].plan_name;
+        const userEmail = result.rows[0].email;
+        
+        // Send Telegram notification
+        sendPaymentRejectionNotification(userName, planName, adminNote).catch((err) => {
+          console.error('Telegram notification failed:', err);
+        });
+
+        // Send Email notification to user
+        import('@/lib/email').then(({ sendPaymentRejectionEmailToUser }) => {
+          sendPaymentRejectionEmailToUser(
+            userEmail,
+            userName,
+            planName,
+            adminNote
+          ).catch((err) => {
+            console.error('Email notification to user failed:', err);
+          });
+        });
+      }
+    }).catch((err) => {
+      console.error('Failed to fetch user details for notification:', err);
+    });
+
+    return successResponse;
   } catch (error) {
     console.error('Payment rejection error:', error);
     return NextResponse.json(

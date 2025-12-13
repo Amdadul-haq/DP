@@ -178,3 +178,167 @@ export async function sendEmailVerificationCode(
     html,
   });
 }
+
+/**
+ * Send payment request notification email to admin
+ */
+export async function sendPaymentRequestEmailToAdmin(
+  adminEmail: string,
+  userName: string,
+  userEmail: string,
+  planName: string,
+  amount: number,
+  billingCycle: string,
+  paymentMethod: string,
+  transactionId: string,
+  requestId: number
+): Promise<boolean> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333; border-bottom: 2px solid #0066cc; padding-bottom: 10px;">New Payment Request</h2>
+      <p>A new payment request has been submitted and requires your review.</p>
+      
+      <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px;">
+        <h3 style="color: #0066cc; margin-top: 0;">User Details</h3>
+        <p style="margin: 5px 0;"><strong>Name:</strong> ${userName}</p>
+        <p style="margin: 5px 0;"><strong>Email:</strong> ${userEmail}</p>
+        
+        <h3 style="color: #0066cc; margin-top: 20px;">Subscription Details</h3>
+        <p style="margin: 5px 0;"><strong>Plan:</strong> ${planName}</p>
+        <p style="margin: 5px 0;"><strong>Amount:</strong> ৳${amount}</p>
+        <p style="margin: 5px 0;"><strong>Billing Cycle:</strong> ${billingCycle}</p>
+        
+        <h3 style="color: #0066cc; margin-top: 20px;">Payment Information</h3>
+        <p style="margin: 5px 0;"><strong>Method:</strong> ${paymentMethod}</p>
+        <p style="margin: 5px 0;"><strong>Transaction ID:</strong> ${transactionId}</p>
+        <p style="margin: 5px 0;"><strong>Request ID:</strong> #${requestId}</p>
+      </div>
+      
+      <p style="margin: 20px 0;">
+        <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/admin/payment-requests" 
+           style="background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+          Review Payment Request
+        </a>
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #999;">
+        Digital Prescription System - Admin Panel<br />
+        This is an automated email, please do not reply.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: adminEmail,
+    subject: `New Payment Request #${requestId} - ${userName}`,
+    html,
+  });
+}
+
+/**
+ * Send payment approval notification email to user
+ */
+export async function sendPaymentApprovalEmailToUser(
+  userEmail: string,
+  userName: string,
+  planName: string,
+  billingCycle: string,
+  amount: number,
+  periodEnd: Date,
+  adminNote?: string
+): Promise<boolean> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #28a745; border-bottom: 2px solid #28a745; padding-bottom: 10px;">✓ Payment Approved</h2>
+      <p>Hello ${userName},</p>
+      <p>Congratulations! Your payment request has been approved and your subscription is now active.</p>
+      
+      <div style="background-color: #d4edda; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #28a745;">
+        <h3 style="color: #155724; margin-top: 0;">Subscription Details</h3>
+        <p style="margin: 5px 0;"><strong>Plan:</strong> ${planName}</p>
+        <p style="margin: 5px 0;"><strong>Amount Paid:</strong> ৳${amount}</p>
+        <p style="margin: 5px 0;"><strong>Billing Cycle:</strong> ${billingCycle}</p>
+        <p style="margin: 5px 0;"><strong>Valid Until:</strong> ${new Date(periodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      </div>
+      
+      ${adminNote ? `
+      <div style="background-color: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <p style="margin: 0;"><strong>Admin Note:</strong></p>
+        <p style="margin: 5px 0; color: #666;">${adminNote}</p>
+      </div>
+      ` : ''}
+      
+      <p style="margin: 20px 0;">
+        <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/login" 
+           style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+          Access Your Dashboard
+        </a>
+      </p>
+      
+      <p>You can now enjoy all the features of your ${planName} plan!</p>
+      
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #999;">
+        Digital Prescription System<br />
+        This is an automated email, please do not reply.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: userEmail,
+    subject: "Payment Approved - Subscription Activated",
+    html,
+  });
+}
+
+/**
+ * Send payment rejection notification email to user
+ */
+export async function sendPaymentRejectionEmailToUser(
+  userEmail: string,
+  userName: string,
+  planName: string,
+  reason: string
+): Promise<boolean> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #dc3545; border-bottom: 2px solid #dc3545; padding-bottom: 10px;">Payment Request Declined</h2>
+      <p>Hello ${userName},</p>
+      <p>We regret to inform you that your payment request for the <strong>${planName}</strong> plan could not be approved.</p>
+      
+      <div style="background-color: #f8d7da; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #dc3545;">
+        <h3 style="color: #721c24; margin-top: 0;">Reason for Rejection</h3>
+        <p style="margin: 0; color: #721c24;">${reason}</p>
+      </div>
+      
+      <h3 style="color: #333;">What to do next?</h3>
+      <ul style="color: #666; line-height: 1.8;">
+        <li>Please verify your payment details and transaction ID</li>
+        <li>Make sure the payment was sent to the correct account</li>
+        <li>Double-check the transaction amount matches the plan price</li>
+        <li>If you believe this is an error, please contact support</li>
+      </ul>
+      
+      <p style="margin: 20px 0;">
+        <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/pricing" 
+           style="background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+          Try Again
+        </a>
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #999;">
+        Digital Prescription System<br />
+        If you have any questions, please contact our support team.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: userEmail,
+    subject: "Payment Request Declined - Action Required",
+    html,
+  });
+}
