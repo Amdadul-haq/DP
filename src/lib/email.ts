@@ -342,3 +342,145 @@ export async function sendPaymentRejectionEmailToUser(
     html,
   });
 }
+
+/**
+ * Send Free Plan activation notification email to admin
+ */
+export async function sendFreePlanNotificationToAdmin(
+  adminEmail: string,
+  userName: string,
+  userEmail: string,
+  userId: number,
+  validUntil: Date
+): Promise<boolean> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px;">🎉 New Free Plan Activation</h2>
+      <p>Hello Admin,</p>
+      <p>A user has successfully activated the <strong>Free Plan</strong>.</p>
+      
+      <div style="background-color: #f0fdf4; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #10b981;">
+        <h3 style="color: #059669; margin-top: 0;">User Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #666; width: 40%;"><strong>Name:</strong></td>
+            <td style="padding: 8px 0; color: #333;">${userName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Email:</strong></td>
+            <td style="padding: 8px 0; color: #333;">${userEmail}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>User ID:</strong></td>
+            <td style="padding: 8px 0; color: #333;">#${userId}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Plan:</strong></td>
+            <td style="padding: 8px 0; color: #333;">Free Plan</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Valid Until:</strong></td>
+            <td style="padding: 8px 0; color: #333;">${validUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <p style="color: #666;">
+        This is an automated notification for your records. No action is required.
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #999;">
+        Digital Prescription System - Admin Notification<br />
+        This is an automated email, please do not reply.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: adminEmail,
+    subject: "🎉 New Free Plan Activation - Digital Prescription",
+    html,
+  });
+}
+
+/**
+ * Send Free Plan activation confirmation email to user
+ */
+export async function sendFreePlanConfirmationToUser(
+  userEmail: string,
+  userName: string,
+  validUntil: Date
+): Promise<boolean> {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px;">🎉 Welcome to Digital Prescription!</h2>
+      <p>Dear ${userName},</p>
+      <p>Congratulations! Your <strong>Free Plan</strong> has been activated successfully.</p>
+      
+      <div style="background-color: #f0fdf4; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #10b981;">
+        <h3 style="color: #059669; margin-top: 0;">Subscription Details</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; color: #666; width: 40%;"><strong>Plan:</strong></td>
+            <td style="padding: 8px 0; color: #333;">Free Plan</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Duration:</strong></td>
+            <td style="padding: 8px 0; color: #333;">1 Month</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Valid Until:</strong></td>
+            <td style="padding: 8px 0; color: #333;">${validUntil.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Status:</strong></td>
+            <td style="padding: 8px 0; color: #10b981; font-weight: bold;">✓ Active</td>
+          </tr>
+        </table>
+      </div>
+      
+      <div style="background-color: #fef3c7; padding: 15px; margin: 20px 0; border-radius: 5px; border-left: 4px solid #f59e0b;">
+        <p style="margin: 0; color: #92400e; font-size: 14px;">
+          <strong>Important:</strong> The Free Plan can only be activated once per account. After expiration, you'll need to upgrade to a paid plan to continue using our services.
+        </p>
+      </div>
+      
+      <p style="color: #333;">
+        You can now access your dashboard and start creating prescriptions!
+      </p>
+      
+      <p style="margin: 20px 0;">
+        <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard" 
+           style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
+          Go to Dashboard
+        </a>
+      </p>
+      
+      <div style="background-color: #f9fafb; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <h3 style="color: #333; margin-top: 0;">Need more features?</h3>
+        <p style="margin: 0; color: #666; line-height: 1.6;">
+          Upgrade to our Starter or Professional plans anytime to unlock unlimited prescriptions, advanced features, and priority support.
+        </p>
+        <p style="margin: 10px 0 0 0;">
+          <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/pricing" 
+             style="color: #059669; text-decoration: none; font-weight: bold;">
+            View Plans →
+          </a>
+        </p>
+      </div>
+      
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #999;">
+        Thank you for choosing Digital Prescription!<br />
+        If you have any questions, feel free to contact our support team.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: userEmail,
+    subject: "🎉 Free Plan Activated - Welcome to Digital Prescription!",
+    html,
+  });
+}

@@ -88,7 +88,8 @@ export async function POST(request: NextRequest) {
         [user.id, planIdNum, billingCycle, currentPeriodStart, currentPeriodEnd]
       );
 
-      return NextResponse.json({
+      // Prepare response immediately
+      const successResponse = NextResponse.json({
         success: true,
         message: 'Free Plan activated successfully!',
         subscription: {
@@ -97,6 +98,40 @@ export async function POST(request: NextRequest) {
           valid_until: currentPeriodEnd,
         },
       });
+
+      // Send email notifications (fire-and-forget, non-blocking)
+      const userName = `${user.first_name} ${user.last_name}`;
+      const adminEmail = process.env.ADMIN_EMAIL || 'admin@digitalprescription.com';
+
+      // Send admin notification email
+      import('@/lib/email').then(({ sendFreePlanNotificationToAdmin }) => {
+        sendFreePlanNotificationToAdmin(
+          adminEmail,
+          userName,
+          user.email,
+          user.id,
+          currentPeriodEnd
+        ).catch((error) => {
+          console.error('Admin Free Plan notification email failed:', error);
+        });
+      }).catch((error) => {
+        console.error('Failed to load email module:', error);
+      });
+
+      // Send user confirmation email
+      import('@/lib/email').then(({ sendFreePlanConfirmationToUser }) => {
+        sendFreePlanConfirmationToUser(
+          user.email,
+          userName,
+          currentPeriodEnd
+        ).catch((error) => {
+          console.error('User Free Plan confirmation email failed:', error);
+        });
+      }).catch((error) => {
+        console.error('Failed to load email module:', error);
+      });
+
+      return successResponse;
     }
 
     // For paid plans, only validate (subscriptions created on admin approval)
