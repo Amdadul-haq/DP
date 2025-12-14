@@ -75,12 +75,18 @@ function CheckoutPageContent() {
         });
         const data = await response.json();
         if (response.ok) {
-          toast.success("Subscription activated!");
+          toast.success("Free Plan activated successfully!", {
+            description: `Valid until ${new Date(data.subscription.valid_until).toLocaleDateString()}`,
+          });
+          
+          // Refresh the page to reload user context with new subscription
           setTimeout(() => {
-            router.push("/dashboard");
+            window.location.href = "/dashboard";
           }, 1500);
         } else {
-          throw new Error(data.error || "Failed to create subscription");
+          toast.error("Activation failed", {
+            description: data.error || "Failed to activate subscription",
+          });
         }
       } catch (error) {
         toast.error("Failed to create subscription. Please try again.");
