@@ -43,6 +43,7 @@ interface DashboardStats {
 
 interface RecentPrescription {
   id: number;
+  prescription_number: number;
   patient_name: string;
   diagnosis: string;
   created_at: string;
@@ -250,7 +251,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               {recentPrescriptions.map((prescription) => (
                 <div
-                  key={prescription.id}
+                  key={prescription.prescription_number}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors group"
                 >
                   <div className="space-y-1 flex-1 min-w-0">

@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       baseQuery += ` AND (
         pt.full_name ILIKE $${queryParams.length + 1} OR 
         pt.patient_number::text ILIKE $${queryParams.length + 1} OR
+        p.prescription_number::text ILIKE $${queryParams.length + 1} OR
         p.diagnosis ILIKE $${queryParams.length + 1}
       )`;
       queryParams.push(`%${search}%`);
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
     const dataQuery = `
       SELECT DISTINCT ON (p.patient_id) 
         p.id,
+        p.prescription_number,
         p.patient_id,
         p.diagnosis,
         p.created_at,

@@ -76,14 +76,27 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN');
 
+      // Lock the doctor's prescription number space to prevent race conditions
+      await client.query('SELECT pg_advisory_xact_lock($1::int, 0)', [doctorId]);
+
+      const nextPrescriptionNumberResult = await client.query(
+        `SELECT COALESCE(MAX(prescription_number), 0) + 1 AS next_number
+         FROM prescriptions
+         WHERE doctor_id = $1`,
+        [doctorId]
+      );
+
+      const prescriptionNumber = nextPrescriptionNumberResult.rows[0].next_number;
+
       // Insert prescription with advice field
       const prescriptionResult = await client.query(
         `INSERT INTO prescriptions 
-         (doctor_id, patient_id, diagnosis, history, cc, bp, pulse, weight, temperature, tests, next_visit_date, advice, created_by, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'completed')
-         RETURNING id`,
+         (doctor_id, prescription_number, patient_id, diagnosis, history, cc, bp, pulse, weight, temperature, tests, next_visit_date, advice, created_by, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'completed')
+         RETURNING id, prescription_number`,
         [
           doctorId,
+          prescriptionNumber,
           prescriptionData.patient_id,
           prescriptionData.diagnosis,
           prescriptionData.history,
@@ -100,6 +113,7 @@ export async function POST(request: NextRequest) {
       );
 
       const prescriptionId = prescriptionResult.rows[0].id;
+      const createdPrescriptionNumber = prescriptionResult.rows[0].prescription_number;
 
       // Insert medicines
       if (prescriptionData.medicines && prescriptionData.medicines.length > 0) {
@@ -124,7 +138,11 @@ export async function POST(request: NextRequest) {
       await client.query('COMMIT');
 
       return NextResponse.json(
-        { message: 'Prescription created successfully', prescriptionId },
+        {
+          message: 'Prescription created successfully',
+          prescriptionId: createdPrescriptionNumber,
+          prescription_number: createdPrescriptionNumber,
+        },
         { status: 201 }
       );
 

@@ -147,6 +147,7 @@ CREATE INDEX IF NOT EXISTS idx_patients_vitals_created_at ON patients_vitals(cre
 -- ==========================
 CREATE TABLE IF NOT EXISTS prescriptions (
     id SERIAL PRIMARY KEY,
+    prescription_number INTEGER NOT NULL,
     doctor_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     patient_id INT NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
     diagnosis TEXT,
@@ -165,7 +166,51 @@ CREATE TABLE IF NOT EXISTS prescriptions (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_prescriptions_doctor_id_created_at ON prescriptions(doctor_id, created_at DESC);
+ALTER TABLE prescriptions
+    ADD COLUMN IF NOT EXISTS prescription_number INTEGER;
+
+-- Backfill existing prescriptions with doctor-scoped sequential numbers
+WITH numbered_prescriptions AS (
+    SELECT
+        id,
+        ROW_NUMBER() OVER (
+            PARTITION BY doctor_id
+            ORDER BY created_at, id
+        ) AS new_prescription_number
+    FROM prescriptions
+    WHERE prescription_number IS NULL
+)
+UPDATE prescriptions p
+SET prescription_number = numbered_prescriptions.new_prescription_number
+FROM numbered_prescriptions
+WHERE p.id = numbered_prescriptions.id;
+
+ALTER TABLE prescriptions
+    ALTER COLUMN prescription_number SET NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_prescriptions_doctor_prescription_number
+    ON prescriptions(doctor_id, prescription_number);
+
+CREATE INDEX IF NOT EXISTS idx_prescriptions_doctor_id_created_at ON prescriptions(doctor_id, created_at DESC);
+
+-- ==========================
+-- 9.1) Function to get next prescription number for a doctor
+-- ==========================
+CREATE OR REPLACE FUNCTION get_next_prescription_number(doctor_id_param INT)
+RETURNS INT AS $$
+DECLARE
+    next_number INT;
+BEGIN
+    PERFORM pg_advisory_xact_lock(doctor_id_param, 0);
+
+    SELECT COALESCE(MAX(prescription_number), 0) + 1
+    INTO next_number
+    FROM prescriptions
+    WHERE doctor_id = doctor_id_param;
+
+    RETURN next_number;
+END;
+$$ LANGUAGE plpgsql;
 -- ==========================
 -- 10) Prescription medicines
 -- ==========================

@@ -57,6 +57,7 @@ interface Medicine {
 
 interface Prescription {
   id: number;
+  prescription_number: number;
   patient_id: number;
   patient_name: string;
   patient_number: number;
@@ -323,7 +324,7 @@ export default function Prescriptions() {
                 </TableHeader>
                 <TableBody>
                   {prescriptions.map((prescription) => (
-                    <TableRow key={prescription.id}>
+                    <TableRow key={prescription.prescription_number}>
                       <TableCell className="text-muted-foreground">
                         {formatDate(prescription.created_at)}
                       </TableCell>
@@ -345,34 +346,34 @@ export default function Prescriptions() {
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem asChild>
                               <Link
-                                href={`/dashboard/prescriptions/${prescription.id}/preview`}
+                                  href={`/dashboard/prescriptions/${prescription.prescription_number}/preview`}
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 View
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => downloadPDF(prescription.id)}
-                              disabled={downloadingId === prescription.id}
+                                onClick={() => downloadPDF(prescription.prescription_number)}
+                                disabled={downloadingId === prescription.prescription_number}
                             >
                               <Download className="h-4 w-4 mr-2" />
-                              {downloadingId === prescription.id
+                                {downloadingId === prescription.prescription_number
                                 ? "Generating..."
                                 : "Download PDF"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => printPDF(prescription.id)}
-                              disabled={printingId === prescription.id}
+                                onClick={() => printPDF(prescription.prescription_number)}
+                                disabled={printingId === prescription.prescription_number}
                             >
                               <Printer className="h-4 w-4 mr-2" />
-                              {printingId === prescription.id
+                                {printingId === prescription.prescription_number
                                 ? "Preparing..."
                                 : "Print"}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-red-600"
-                              onClick={() => handleDelete(prescription.id)}
+                                onClick={() => handleDelete(prescription.prescription_number)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
