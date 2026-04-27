@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await pool.query(
-      `SELECT p.id, p.diagnosis, p.created_at, 
+      `SELECT p.id, p.prescription_number, p.diagnosis, p.created_at, 
               pt.full_name as patient_name, pt.patient_number
        FROM prescriptions p
        INNER JOIN patients pt ON p.patient_id = pt.id

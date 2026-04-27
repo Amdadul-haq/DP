@@ -8,6 +8,7 @@ export interface Medicine {
 
 export interface Prescription {
   id: number;
+  prescription_number: number;
   patient_id: number;
   diagnosis: string;
   history: string;

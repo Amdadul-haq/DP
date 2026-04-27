@@ -22,8 +22,14 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // If assistant, get doctor_id
+    let doctorId = user.id;
+    if (user.role === 'assistant' && user.doctor_id) {
+      doctorId = user.doctor_id;
+    }
+
     if (!resolvedParams.id) {
-      return NextResponse.json({ error: 'Prescription ID is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Prescription number is required' }, { status: 400 });
     }
 
     // Get prescription details
@@ -41,8 +47,8 @@ export async function GET(
        FROM prescriptions p
        LEFT JOIN patients pt ON p.patient_id = pt.id
        LEFT JOIN users u ON p.doctor_id = u.id
-       WHERE p.id = $1`,
-      [resolvedParams.id]
+       WHERE p.prescription_number = $1 AND p.doctor_id = $2`,
+      [resolvedParams.id, doctorId]
     );
 
     if (prescriptionResult.rows.length === 0) {
@@ -50,15 +56,15 @@ export async function GET(
     }
 
     // Get prescription medicines
+    const prescription = prescriptionResult.rows[0];
     const medicinesResult = await pool.query(
       `SELECT name, rules, days, notes
        FROM prescription_medicines
        WHERE prescription_id = $1
        ORDER BY id`,
-      [resolvedParams.id]
+      [prescription.id]
     );
 
-    const prescription = prescriptionResult.rows[0];
     prescription.medicines = medicinesResult.rows;
 
     return NextResponse.json({ prescription });
@@ -91,31 +97,25 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!resolvedParams.id) {
-      return NextResponse.json({ error: 'Prescription ID is required' }, { status: 400 });
-    }
-
     // If assistant, get doctor_id
     let doctorId = user.id;
     if (user.role === 'assistant' && user.doctor_id) {
       doctorId = user.doctor_id;
     }
 
-    // First check if the prescription belongs to the doctor
-    const checkResult = await pool.query(
-      `SELECT id FROM prescriptions WHERE id = $1 AND doctor_id = $2`,
+    if (!resolvedParams.id) {
+      return NextResponse.json({ error: 'Prescription number is required' }, { status: 400 });
+    }
+
+    // Delete by doctor-scoped prescription number
+    const deleteResult = await pool.query(
+      `DELETE FROM prescriptions WHERE prescription_number = $1 AND doctor_id = $2 RETURNING id`,
       [resolvedParams.id, doctorId]
     );
 
-    if (checkResult.rows.length === 0) {
+    if (deleteResult.rows.length === 0) {
       return NextResponse.json({ error: 'Prescription not found' }, { status: 404 });
     }
-
-    // Delete the prescription (cascade will delete related medicines)
-    await pool.query(
-      `DELETE FROM prescriptions WHERE id = $1`,
-      [resolvedParams.id]
-    );
 
     return NextResponse.json({ message: 'Prescription deleted successfully' });
 

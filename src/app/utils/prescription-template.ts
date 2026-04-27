@@ -9,6 +9,7 @@ interface Medicine {
 
 interface PrescriptionData {
   id: number;
+  prescription_number: number;
   patient_id: number;
   patient_number: number;
   diagnosis: string;
