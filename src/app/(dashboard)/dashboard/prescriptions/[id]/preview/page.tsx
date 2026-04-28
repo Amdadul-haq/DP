@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Download, Printer, ArrowLeft, FileText } from "lucide-react";
 import { PrescriptionHTMLTemplate } from "@/components/PrescriptionHTMLTemplate";
+import { usePrescriptionPDF } from "@/hooks/usePrescriptionPDF";
 
 interface Prescription {
   id: number;
@@ -47,7 +48,7 @@ export default function PrescriptionPreview() {
 
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const { downloadPDF: hookDownloadPDF, printPDF: hookPrintPDF, downloading, printing } = usePrescriptionPDF(prescriptionId);
 
   useEffect(() => {
     fetchPrescription();
@@ -75,54 +76,15 @@ export default function PrescriptionPreview() {
     }
   };
 
-  const downloadPDF = async () => {
-    setGeneratingPdf(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/prescriptions/${prescriptionId}/pdf`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        // Create a blob from the response
-        const blob = await response.blob();
-
-        // Create a URL for the blob
-        const url = window.URL.createObjectURL(blob);
-
-        // Create a temporary anchor element
-        const a = document.createElement("a");
-        a.style.display = "none";
-        a.href = url;
-
-        // Set the filename
-        a.download = `${prescription?.patient_name}_${
-          new Date().toISOString().split("T")[0]
-        }.pdf`;
-
-        // Append to body, click, and remove
-        document.body.appendChild(a);
-        a.click();
-
-        // Clean up
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        toast.success("PDF downloaded successfully");
-      } else {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to generate PDF");
-      }
-    } catch (error) {
-      console.error("PDF generation error:", error);
-      toast.error("Failed to generate PDF");
-    } finally {
-      setGeneratingPdf(false);
-    }
+  const handleDownloadPDF = async () => {
+    const fileName = `${prescription?.patient_name}_${
+      new Date().toISOString().split("T")[0]
+    }.pdf`;
+    await hookDownloadPDF(fileName);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    await hookPrintPDF();
   };
 
   if (loading) {
@@ -174,11 +136,11 @@ export default function PrescriptionPreview() {
         </Button>
 
         <Button
-          onClick={downloadPDF}
-          disabled={generatingPdf}
+          onClick={handleDownloadPDF}
+          disabled={downloading}
           className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
         >
-          {generatingPdf ? (
+          {downloading ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           ) : (
             <Download className="h-4 w-4" />
@@ -188,9 +150,14 @@ export default function PrescriptionPreview() {
 
         <Button
           onClick={handlePrint}
+          disabled={printing}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
         >
-          <Printer className="h-4 w-4" />
+          {printing ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          ) : (
+            <Printer className="h-4 w-4" />
+          )}
           Print
         </Button>
       </div>

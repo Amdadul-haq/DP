@@ -15,19 +15,10 @@ import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Pagination,
   PaginationContent,
@@ -36,17 +27,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Plus,
-  Search,
-  MoreHorizontal,
-  Trash2,
-  Eye,
-  Download,
-  Printer,
-} from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { PrescriptionTableRow } from "@/components/PrescriptionTableRow";
 
 interface Medicine {
   name: string;
@@ -78,8 +62,6 @@ export default function Prescriptions() {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
-  const [printingId, setPrintingId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -131,113 +113,9 @@ export default function Prescriptions() {
     fetchPrescriptions(page, searchTerm);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
 
-  const downloadPDF = async (prescriptionId: number) => {
-    setDownloadingId(prescriptionId);
-    const toastId = toast.loading("Generating PDF...", {
-      description: "Preparing your prescription for download",
-    });
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/prescriptions/${prescriptionId}/pdf`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        toast.loading("Generating PDF...", {
-          id: toastId,
-          description: "Almost ready...",
-        });
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.style.display = "none";
-        a.href = url;
-        a.download = `prescription_${prescriptionId}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        toast.success("PDF downloaded successfully", {
-          id: toastId,
-          description: "Your prescription has been downloaded",
-        });
-      } else {
-        toast.error("Failed to download PDF", {
-          id: toastId,
-          description: "Please try again later",
-        });
-      }
-    } catch (error) {
-      toast.error("Failed to download PDF", {
-        id: toastId,
-        description: "Network error occurred",
-      });
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-
-  const printPDF = async (prescriptionId: number) => {
-    setPrintingId(prescriptionId);
-    const toastId = toast.loading("Preparing for printing...", {
-      description: "Loading prescription document",
-    });
-
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/prescriptions/${prescriptionId}/pdf`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const printWindow = window.open(url, "_blank");
-
-        if (printWindow) {
-          printWindow.onload = function () {
-            setPrintingId(null);
-            toast.success("PDF ready for printing", {
-              id: toastId,
-              description: "Use the browser's print function (Ctrl+P)",
-            });
-
-            setTimeout(() => {
-              printWindow.focus();
-            }, 1000);
-          };
-        } else {
-          toast.error("Popup blocked. Please allow popups for this site.", {
-            id: toastId,
-          });
-          setPrintingId(null);
-        }
-      } else {
-        toast.error("Failed to prepare for printing", {
-          id: toastId,
-          description: "Please try again later",
-        });
-        setPrintingId(null);
-      }
-    } catch (error) {
-      toast.error("Failed to prepare for printing", {
-        id: toastId,
-        description: "Network error occurred",
-      });
-      setPrintingId(null);
-    }
-  };
 
   const handleDelete = async (prescriptionId: number) => {
-    if (!confirm("Are you sure you want to delete this prescription?")) return;
-
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(`/api/prescriptions/${prescriptionId}`, {
@@ -324,64 +202,11 @@ export default function Prescriptions() {
                 </TableHeader>
                 <TableBody>
                   {prescriptions.map((prescription) => (
-                    <TableRow key={prescription.prescription_number}>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(prescription.created_at)}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {prescription.patient_number}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {prescription.patient_name}
-                      </TableCell>
-                      <TableCell>{prescription.diagnosis}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem asChild>
-                              <Link
-                                  href={`/dashboard/prescriptions/${prescription.prescription_number}/preview`}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => downloadPDF(prescription.prescription_number)}
-                                disabled={downloadingId === prescription.prescription_number}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                                {downloadingId === prescription.prescription_number
-                                ? "Generating..."
-                                : "Download PDF"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={() => printPDF(prescription.prescription_number)}
-                                disabled={printingId === prescription.prescription_number}
-                            >
-                              <Printer className="h-4 w-4 mr-2" />
-                                {printingId === prescription.prescription_number
-                                ? "Preparing..."
-                                : "Print"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600"
-                                onClick={() => handleDelete(prescription.prescription_number)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                    <PrescriptionTableRow
+                      key={prescription.prescription_number}
+                      prescription={prescription}
+                      onDelete={handleDelete}
+                    />
                   ))}
                 </TableBody>
               </Table>
