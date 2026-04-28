@@ -81,55 +81,70 @@ export async function POST(request: NextRequest) {
       const currentPeriodEnd = new Date();
       currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
 
-      await pool.query(
+      const insertResult = await pool.query(
         `INSERT INTO subscriptions 
-         (user_id, plan_id, billing_cycle, current_period_start, current_period_end, status)
-         VALUES ($1, $2, $3, $4, $5, 'active')`,
+         (user_id, plan_id, billing_cycle, current_period_start, current_period_end, status, created_at)
+         VALUES ($1, $2, $3, $4, $5, 'active', NOW())
+         RETURNING id, user_id, plan_id, billing_cycle, current_period_start, current_period_end, status, created_at`,
         [user.id, planIdNum, billingCycle, currentPeriodStart, currentPeriodEnd]
       );
 
-      // Prepare response immediately
+      if (insertResult.rows.length === 0) {
+        // If insert didn't create a row, respond with error and do NOT send notifications
+        return NextResponse.json(
+          { error: 'Failed to create subscription' },
+          { status: 500 }
+        );
+      }
+
+      // Prepare response using the created subscription
+      const createdSub = insertResult.rows[0];
       const successResponse = NextResponse.json({
         success: true,
         message: 'Free Plan activated successfully!',
         subscription: {
+          id: createdSub.id,
           plan_name: plan.name,
-          billing_cycle: billingCycle,
-          valid_until: currentPeriodEnd,
+          billing_cycle: createdSub.billing_cycle,
+          valid_until: createdSub.current_period_end,
         },
       });
 
-      // Send email notifications (fire-and-forget, non-blocking)
+      // Only after confirming subscription creation, send notifications (fire-and-forget)
       const userName = `${user.first_name} ${user.last_name}`;
       const adminEmail = process.env.ADMIN_EMAIL || 'admin@digitalprescription.com';
 
       // Send admin notification email
-      import('@/lib/email').then(({ sendFreePlanNotificationToAdmin }) => {
-        sendFreePlanNotificationToAdmin(
-          adminEmail,
-          userName,
-          user.email,
-          user.id,
-          currentPeriodEnd
-        ).catch((error) => {
-          console.error('Admin Free Plan notification email failed:', error);
+      import('@/lib/email')
+        .then(({ sendFreePlanNotificationToAdmin }) => {
+          sendFreePlanNotificationToAdmin(
+            adminEmail,
+            userName,
+            user.email,
+            user.id,
+            new Date(createdSub.current_period_end)
+          ).catch((error) => {
+            console.error('Admin Free Plan notification email failed:', error);
+          });
+        })
+        .catch((error) => {
+          console.error('Failed to load email module:', error);
         });
-      }).catch((error) => {
-        console.error('Failed to load email module:', error);
-      });
 
       // Send user confirmation email
-      import('@/lib/email').then(({ sendFreePlanConfirmationToUser }) => {
-        sendFreePlanConfirmationToUser(
-          user.email,
-          userName,
-          currentPeriodEnd
-        ).catch((error) => {
-          console.error('User Free Plan confirmation email failed:', error);
+      import('@/lib/email')
+        .then(({ sendFreePlanConfirmationToUser }) => {
+          sendFreePlanConfirmationToUser(
+            user.email,
+            userName,
+            new Date(createdSub.current_period_end)
+          ).catch((error) => {
+            console.error('User Free Plan confirmation email failed:', error);
+          });
+        })
+        .catch((error) => {
+          console.error('Failed to load email module:', error);
         });
-      }).catch((error) => {
-        console.error('Failed to load email module:', error);
-      });
 
       return successResponse;
     }
