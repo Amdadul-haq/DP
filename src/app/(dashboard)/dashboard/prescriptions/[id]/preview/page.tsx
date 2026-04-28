@@ -121,9 +121,53 @@ export default function PrescriptionPreview() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+const handlePrint = async () => {
+  const toastId = toast.loading("Preparing for printing...", {
+    description: "Generating PDF document",
+  });
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(`/api/prescriptions/${prescriptionId}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const printWindow = window.open(url, "_blank");
+
+      if (printWindow) {
+        printWindow.onload = function () {
+          toast.success("PDF ready for printing", {
+            id: toastId,
+            description: "Press Ctrl + P to print",
+          });
+
+          setTimeout(() => {
+            printWindow.focus();
+          }, 1000);
+        };
+      } else {
+        toast.error("Popup blocked. Allow popups!", {
+          id: toastId,
+        });
+      }
+    } else {
+      toast.error("Failed to prepare PDF", {
+        id: toastId,
+        description: "Try again later",
+      });
+    }
+  } catch (error) {
+    toast.error("Printing failed", {
+      id: toastId,
+      description: "Network error occurred",
+    });
+  }
+};
 
   if (loading) {
     return (
