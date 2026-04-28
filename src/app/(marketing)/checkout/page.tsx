@@ -1,7 +1,7 @@
 // src/app/(marketing)/checkout/page.tsx
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ function CheckoutPageContent() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [isLoading, setIsLoading] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     const planId = searchParams.get("plan");
@@ -48,6 +49,10 @@ function CheckoutPageContent() {
 
   const handleSubscribe = async () => {
     if (!plan) return;
+
+    if (isSubmittingRef.current) {
+      return;
+    }
     
     const token = localStorage.getItem("token");
     if (!token) {
@@ -60,6 +65,7 @@ function CheckoutPageContent() {
     
     // If Free plan, create subscription directly (no payment needed)
     if (isFree) {
+      isSubmittingRef.current = true;
       setIsLoading(true);
       try {
         const response = await fetch("/api/checkout", {
@@ -92,6 +98,7 @@ function CheckoutPageContent() {
         toast.error("Failed to create subscription. Please try again.");
         console.error("Checkout error:", error);
       } finally {
+        isSubmittingRef.current = false;
         setIsLoading(false);
       }
     } else {

@@ -115,6 +115,12 @@ export default function PricingPage() {
       return;
     }
 
+    const selectedPlan = plans.find((plan) => plan.id === planId);
+    if (selectedPlan?.name === "Free") {
+      router.push(`/checkout?plan=${planId}&cycle=${billingCycle}`);
+      return;
+    }
+
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
