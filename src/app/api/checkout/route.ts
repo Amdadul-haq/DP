@@ -69,18 +69,27 @@ export async function POST(request: NextRequest) {
 
         // Check if user has already used Free Plan before
         const previousFreeSubscription = await client.query(
-          `SELECT id FROM subscriptions 
+          `SELECT id, billing_cycle, current_period_start, current_period_end, status FROM subscriptions 
            WHERE user_id = $1 AND plan_id = $2 
            LIMIT 1`,
           [user.id, planIdNum]
         );
 
         if (previousFreeSubscription.rows.length > 0) {
+          // Free Plan already exists for this user - return it as success (idempotent)
           await client.query('ROLLBACK');
-          return NextResponse.json(
-            { error: 'Free Plan can only be activated once per account. Please choose a paid plan.' },
-            { status: 400 }
-          );
+          const existingSub = previousFreeSubscription.rows[0];
+          return NextResponse.json({
+            success: true,
+            message: 'Free Plan activated successfully!',
+            subscription: {
+              id: existingSub.id,
+              plan_name: plan.name,
+              billing_cycle: existingSub.billing_cycle,
+              valid_until: existingSub.current_period_end,
+            },
+            isDuplicate: true,
+          });
         }
 
         // Create Free Plan subscription (valid for 1 month)
