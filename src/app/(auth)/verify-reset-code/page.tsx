@@ -1,4 +1,4 @@
-// src/app/(marketing)/verify-reset-code/page.tsx
+// src/app/(auth)/verify-reset-code/page.tsx
 "use client";
 
 import { Suspense, useState, useEffect } from "react";

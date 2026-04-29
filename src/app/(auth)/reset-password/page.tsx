@@ -1,4 +1,4 @@
-// src/app/(marketing)/reset-password/page.tsx
+// src/app/(auth)/reset-password/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";

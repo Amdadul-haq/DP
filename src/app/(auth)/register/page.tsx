@@ -1,4 +1,4 @@
-// src/app/(marketing)/register/page.tsx
+// src/app/(auth)/register/page.tsx
 "use client";
 
 import { useState } from "react";

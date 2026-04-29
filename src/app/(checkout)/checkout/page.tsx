@@ -1,4 +1,4 @@
-// src/app/(marketing)/checkout/page.tsx
+// src/app/(checkout)/checkout/page.tsx
 "use client";
 
 import { useEffect, useRef, useState, Suspense } from "react";
