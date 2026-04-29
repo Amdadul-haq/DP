@@ -1,7 +1,7 @@
 // components/payment/PaymentForm.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [formData, setFormData] = useState({
     transactionId: "",
@@ -40,6 +42,61 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
   useEffect(() => {
     fetchPaymentMethods();
   }, []);
+
+  // Polling effect: Check subscription status every 5 seconds after payment submission
+  useEffect(() => {
+    if (!showSuccess) return;
+
+    setIsPolling(true);
+
+    const pollSubscriptionStatus = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await fetch("/api/auth/subscription", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // If subscription is now active, redirect to dashboard
+          if (data.hasActiveSubscription) {
+            setIsPolling(false);
+            if (pollingIntervalRef.current) {
+              clearInterval(pollingIntervalRef.current);
+              pollingIntervalRef.current = null;
+            }
+            toast.success("Subscription activated!", {
+              description: "Redirecting to your dashboard...",
+            });
+            setTimeout(() => {
+              router.push("/dashboard");
+            }, 1500);
+          }
+        }
+      } catch (error) {
+        console.error("Error polling subscription status:", error);
+      }
+    };
+
+    // Start polling every 5 seconds
+    pollingIntervalRef.current = setInterval(pollSubscriptionStatus, 5000);
+
+    // Initial poll immediately
+    pollSubscriptionStatus();
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [showSuccess, router]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -164,21 +221,39 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
             </p>
           </div>
 
+          <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+            <AlertDescription className="text-blue-800 dark:text-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">✓ Auto-Detection Enabled</p>
+                </div>
+                {isPolling && (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-xs">Checking status...</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm mt-2">
+                We&apos;re automatically checking your subscription status. Once your payment is approved, you&apos;ll be redirected to your dashboard instantly.
+              </p>
+            </AlertDescription>
+          </Alert>
+
           <Alert className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
             <AlertDescription className="text-amber-800 dark:text-amber-200">
               <p className="font-medium">⏳ Pending Approval</p>
               <p className="text-sm mt-1">
-                You cannot access the dashboard until your payment is approved by our admin team.
-                Please wait for the verification process to complete.
+                Your payment is under review. You can stay on this page while we check for updates, or come back later using your login credentials.
               </p>
             </AlertDescription>
           </Alert>
 
           <div className="flex gap-3">
-            <Button onClick={() => router.push("/pricing")} className="flex-1">
+            <Button onClick={() => router.push("/pricing")} className="flex-1" variant="outline" disabled={isPolling}>
               Back to Pricing
             </Button>
-            <Button onClick={() => router.push("/")} variant="outline" className="flex-1">
+            <Button onClick={() => router.push("/")} variant="outline" className="flex-1" disabled={isPolling}>
               Go to Home
             </Button>
           </div>
