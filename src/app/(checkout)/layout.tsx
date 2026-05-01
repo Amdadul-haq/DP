@@ -1,3 +1,4 @@
+// app/(checkout)/layout.tsx
 "use client";
 
 import { UserProvider } from "@/context/UserContext";
