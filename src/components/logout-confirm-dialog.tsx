@@ -25,16 +25,28 @@ export function LogoutConfirmDialog({
 }: LogoutConfirmDialogProps) {
   const router = useRouter();
 
-  const handleLogout = () => {
-    // Clear local storage
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    const token = localStorage.getItem("token");
 
-    // Show success message
-    toast.success("Logged out successfully");
-
-    // Redirect to home page
-    router.push("/");
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      });
+    } catch (error) {
+      console.error("Logout request error:", error);
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      toast.success("Logged out successfully");
+      router.push("/");
+      router.refresh();
+    }
   };
 
   return (

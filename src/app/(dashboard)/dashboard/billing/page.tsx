@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   CreditCard,
-  Receipt,
+  Banknote,
   CheckCircle,
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
@@ -334,7 +334,7 @@ export default function Billing() {
                   className="flex items-center justify-between p-3 border rounded-lg"
                 >
                   <div className="flex items-center space-x-3">
-                    <Receipt className="h-5 w-5 text-muted-foreground" />
+                    <Banknote className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">INV-{invoice.id}</p>
                       <p className="text-sm text-muted-foreground">

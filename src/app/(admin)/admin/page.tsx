@@ -3,61 +3,89 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CreditCard, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Users,
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  UserRoundCheck,
+  Shield,
+  Wallet,
+  RefreshCcw,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface AdminStats {
   totalUsers: number;
   totalDoctors: number;
+  totalAssistants: number;
+  totalAdmins: number;
   totalPaymentRequests: number;
   pendingPayments: number;
   approvedPayments: number;
   rejectedPayments: number;
+  approvedAmountTotal: number;
+  activeSubscriptions: number;
+  expiredSubscriptions: number;
+  canceledSubscriptions: number;
+  usersWithPendingPayment: number;
 }
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalDoctors: 0,
+    totalAssistants: 0,
+    totalAdmins: 0,
     totalPaymentRequests: 0,
     pendingPayments: 0,
     approvedPayments: 0,
     rejectedPayments: 0,
+    approvedAmountTotal: 0,
+    activeSubscriptions: 0,
+    expiredSubscriptions: 0,
+    canceledSubscriptions: 0,
+    usersWithPendingPayment: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchStats();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchStats = async (silent = false) => {
+    if (silent) {
+      setIsRefreshing(true);
+    }
+
     try {
       const token = localStorage.getItem("token");
-      
-      // Fetch payment requests
-      const paymentsResponse = await fetch("/api/admin/payment-requests", {
+
+      const response = await fetch("/api/admin/stats", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (paymentsResponse.ok) {
-        const paymentsData = await paymentsResponse.json();
-        const requests: Array<{ status: string }> = paymentsData.paymentRequests || [];
-        
-        setStats({
-          totalUsers: 0, // Will implement later
-          totalDoctors: 0, // Will implement later
-          totalPaymentRequests: requests.length,
-          pendingPayments: requests.filter((r) => r.status === "pending").length,
-          approvedPayments: requests.filter((r) => r.status === "approved").length,
-          rejectedPayments: requests.filter((r) => r.status === "rejected").length,
-        });
+      if (!response.ok) {
+        throw new Error("Failed to load admin stats");
       }
+
+      const data = await response.json();
+      if (!data?.stats) {
+        throw new Error("Invalid stats response");
+      }
+
+      setStats(data.stats as AdminStats);
     } catch {
       toast.error("Failed to load stats");
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
+
+  const formatCurrency = (value: number) => `৳${Number(value || 0).toLocaleString("en-BD")}`;
 
   if (isLoading) {
     return (
@@ -77,13 +105,24 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Overview of system statistics</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Overview of system statistics</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => fetchStats(true)}
+          disabled={isRefreshing}
+          className="shrink-0"
+        >
+          <RefreshCcw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -111,6 +150,32 @@ export default function AdminDashboard() {
             <p className="text-xs text-muted-foreground">
               Registered doctors with accounts
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Assistants</CardDescription>
+              <UserRoundCheck className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-3xl">{stats.totalAssistants}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">Assistant accounts linked to doctors</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Admin Accounts</CardDescription>
+              <Shield className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-3xl">{stats.totalAdmins}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">Users with admin access rights</p>
           </CardContent>
         </Card>
 
@@ -173,6 +238,45 @@ export default function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Approved Amount</CardDescription>
+              <Wallet className="h-4 w-4 text-emerald-500" />
+            </div>
+            <CardTitle className="text-3xl text-emerald-600">{formatCurrency(stats.approvedAmountTotal)}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">Total approved payment amount</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Active Subscriptions</CardDescription>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </div>
+            <CardTitle className="text-3xl text-green-600">{stats.activeSubscriptions}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">Currently active paid or free plans</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardDescription>Users With Pending Payment</CardDescription>
+              <CreditCard className="h-4 w-4 text-amber-500" />
+            </div>
+            <CardTitle className="text-3xl text-amber-600">{stats.usersWithPendingPayment}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">Unique users waiting for approval</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Quick Links */}
@@ -202,7 +306,7 @@ export default function AdminDashboard() {
             <div>
               <p className="font-medium">Manage Users</p>
               <p className="text-sm text-muted-foreground">
-                View all system users
+                {stats.totalUsers} users across all roles
               </p>
             </div>
             <Users className="h-5 w-5 text-muted-foreground" />
