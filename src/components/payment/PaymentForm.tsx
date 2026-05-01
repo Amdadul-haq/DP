@@ -69,12 +69,56 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
 
   useEffect(() => {
     const pendingState = readPendingFlowState();
-    if (pendingState?.planId === String(plan.id)) {
-      console.log("[PaymentForm] Restored pending payment state", {
-        planId: pendingState.planId,
-        billingCycle: pendingState.billingCycle,
-      });
-      setShowSuccess(true);
+    if (!pendingState) return;
+
+    // Only restore pending state if it belongs to the current logged-in user
+    // and (optionally) the auth token matches. This prevents stale pending
+    // state from other sessions or users from causing the UI to show a
+    // success message incorrectly.
+    if (pendingState.planId === String(plan.id)) {
+      const localUserStr = localStorage.getItem("user");
+      const localToken = localStorage.getItem("token");
+      let belongsToCurrentUser = false;
+
+      if (localUserStr) {
+        try {
+          const parsed = JSON.parse(localUserStr) as { id?: string | number };
+          const storedUserId = parsed?.id != null ? String(parsed.id) : "";
+          belongsToCurrentUser = Boolean(
+            pendingState.submittedByUserId && storedUserId && pendingState.submittedByUserId === storedUserId
+          );
+        } catch (err) {
+          console.error("[PaymentForm] Failed to parse local user while restoring pending state:", err);
+        }
+      }
+
+      // If an authToken was recorded with the pending flow, prefer matching it
+      // to the currently stored token. If they don't match, treat it as stale.
+      if (pendingState.authToken && localToken) {
+        if (pendingState.authToken.trim() !== localToken.trim()) {
+          belongsToCurrentUser = false;
+        }
+      } else if (!pendingState.submittedByUserId) {
+        // No user id saved — safest to ignore stale pending state
+        belongsToCurrentUser = false;
+      }
+
+      if (belongsToCurrentUser) {
+        console.log("[PaymentForm] Restored pending payment state for current user", {
+          planId: pendingState.planId,
+          billingCycle: pendingState.billingCycle,
+        });
+        setShowSuccess(true);
+      } else {
+        console.warn("[PaymentForm] Ignoring stale pending payment state and clearing it", {
+          pendingState,
+        });
+        try {
+          localStorage.removeItem(pendingFlowKey);
+        } catch {
+          // no-op
+        }
+      }
     }
   }, [pendingFlowKey, plan.id]);
 
