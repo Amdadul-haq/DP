@@ -111,7 +111,7 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
     }
 
     setIsPolling(true);
-    const POLL_INTERVAL_MS = 5000;
+    const POLL_INTERVAL_MS = 1500;
 
     const pendingState = readPendingFlowState();
     const pendingUserId = pendingState?.submittedByUserId;
@@ -136,12 +136,40 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
       }
     };
 
-    const redirectToDashboard = () => {
-      localStorage.removeItem(pendingFlowKey);
-      toast.success("Subscription activated!", {
-        description: "Redirecting to your dashboard...",
-      });
-      window.location.href = "/dashboard";
+    const redirectToDashboard = async () => {
+      // If we have the original submit token saved, restore token + user in localStorage
+      try {
+        if (submitToken) {
+          try {
+            const resp = await fetch('/api/auth/me', {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${submitToken}` },
+              cache: 'no-store',
+            });
+            if (resp.ok) {
+              const body = await resp.json();
+              if (body?.user) {
+                // Restore token and user so dashboard recognizes doctor
+                localStorage.setItem('token', submitToken);
+                localStorage.setItem('user', JSON.stringify(body.user));
+                console.log('[PaymentForm] Restored doctor token+user before redirect', {
+                  userId: body.user.id,
+                });
+              } else {
+                console.warn('[PaymentForm] /api/auth/me returned no user');
+              }
+            } else {
+              console.warn('[PaymentForm] /api/auth/me failed', resp.status);
+            }
+          } catch (err) {
+            console.error('[PaymentForm] Failed to restore user via /api/auth/me', err);
+          }
+        }
+      } finally {
+        localStorage.removeItem(pendingFlowKey);
+        toast.success('Subscription activated!', { description: 'Redirecting to your dashboard...' });
+        window.location.href = '/dashboard';
+      }
     };
 
     const pollSubscriptionStatus = async (trigger: string) => {
