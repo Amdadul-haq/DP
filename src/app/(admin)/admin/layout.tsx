@@ -76,10 +76,15 @@ export default function AdminLayout({
       });
 
       if (!response.ok) {
-        toast.error("You don't have admin access");
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        router.replace("/login");
+        if (response.status === 401 || response.status === 403) {
+          toast.error("You don't have admin access");
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          router.replace("/login");
+          return;
+        }
+
+        toast.error("Failed to verify access. Please try again later.");
         return;
       }
 

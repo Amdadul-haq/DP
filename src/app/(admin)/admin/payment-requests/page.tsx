@@ -101,8 +101,13 @@ export default function AdminPaymentRequestsPage() {
       });
 
       if (!response.ok) {
-        toast.error("You don't have admin access");
-        router.push("/login");
+        // Only treat explicit unauthorized errors as a reason to log out.
+        if (response.status === 401 || response.status === 403) {
+          toast.error("You don't have admin access");
+          router.push("/login");
+        } else {
+          toast.error("Failed to verify admin access. Please try again.");
+        }
       }
     } catch {
       toast.error("Failed to verify admin access");
