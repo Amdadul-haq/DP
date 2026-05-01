@@ -91,44 +91,28 @@ export async function POST(
         [user.id, adminNote || null, id]
       );
 
-      // Check for existing active subscription - use single query
-      const existingSubResult = await client.query(
-        `SELECT id FROM subscriptions 
-         WHERE user_id = $1 AND plan_id = $2 AND status = 'active'`,
-        [paymentRequest.user_id, paymentRequest.plan_id]
+      // Upgrade/downgrade behavior: keep only one active subscription per user.
+      // First deactivate any currently active subscription(s), then create the approved one.
+      await client.query(
+        `UPDATE subscriptions
+         SET status = 'canceled', updated_at = NOW()
+         WHERE user_id = $1 AND status = 'active'`,
+        [paymentRequest.user_id]
       );
 
-      if (existingSubResult.rows.length > 0) {
-        // Update existing subscription
-        await client.query(
-          `UPDATE subscriptions 
-           SET billing_cycle = $1, current_period_start = $2, current_period_end = $3, 
-               payment_request_id = $4, updated_at = NOW()
-           WHERE id = $5`,
-          [
-            paymentRequest.billing_cycle,
-            currentPeriodStart,
-            currentPeriodEnd,
-            paymentRequest.id,
-            existingSubResult.rows[0].id
-          ]
-        );
-      } else {
-        // Create new subscription
-        await client.query(
-          `INSERT INTO subscriptions 
-           (user_id, plan_id, billing_cycle, current_period_start, current_period_end, status, payment_request_id)
-           VALUES ($1, $2, $3, $4, $5, 'active', $6)`,
-          [
-            paymentRequest.user_id,
-            paymentRequest.plan_id,
-            paymentRequest.billing_cycle,
-            currentPeriodStart,
-            currentPeriodEnd,
-            paymentRequest.id
-          ]
-        );
-      }
+      await client.query(
+        `INSERT INTO subscriptions 
+         (user_id, plan_id, billing_cycle, current_period_start, current_period_end, status, payment_request_id)
+         VALUES ($1, $2, $3, $4, $5, 'active', $6)`,
+        [
+          paymentRequest.user_id,
+          paymentRequest.plan_id,
+          paymentRequest.billing_cycle,
+          currentPeriodStart,
+          currentPeriodEnd,
+          paymentRequest.id
+        ]
+      );
 
       // Commit transaction
       await client.query('COMMIT');

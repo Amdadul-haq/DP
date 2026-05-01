@@ -49,6 +49,28 @@ export default function AdminPaymentRequestsPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkAdminAccess();
+      }
+    };
+
+    const handleFocus = () => {
+      checkAdminAccess();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
     filterRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, paymentRequests]);
@@ -149,6 +171,15 @@ export default function AdminPaymentRequestsPage() {
         setShowApproveDialog(false);
         setAdminNote("");
         setSelectedRequest(null);
+        // Notify other tabs (user clients) about this approval so they can refresh subscription
+        try {
+          const bc = new BroadcastChannel("payments");
+          bc.postMessage({ type: "payment-approved", userId: selectedRequest.user_id, planId: selectedRequest.plan_id, requestId: selectedRequest.id });
+          bc.close();
+        } catch (err) {
+          console.warn("BroadcastChannel not available:", err);
+        }
+
         fetchPaymentRequests(); // Refresh list
       } else {
         toast.error(data.error || "Failed to approve payment request");
@@ -189,6 +220,15 @@ export default function AdminPaymentRequestsPage() {
         setShowRejectDialog(false);
         setAdminNote("");
         setSelectedRequest(null);
+        // Notify other tabs about rejection if needed
+        try {
+          const bc = new BroadcastChannel("payments");
+          bc.postMessage({ type: "payment-rejected", userId: selectedRequest.user_id, requestId: selectedRequest.id });
+          bc.close();
+        } catch (err) {
+          console.warn("BroadcastChannel not available:", err);
+        }
+
         fetchPaymentRequests(); // Refresh list
       } else {
         toast.error(data.error || "Failed to reject payment request");

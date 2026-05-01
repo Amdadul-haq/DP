@@ -2,6 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { SubscriptionWithPlan } from "@/lib/plans";
 
 interface User {
@@ -28,10 +29,26 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionWithPlan | null>(null);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
   const [hasPendingPayment, setHasPendingPayment] = useState(false);
+
+  const refreshSubscription = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    const response = await fetch("/api/auth/subscription", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Subscription fetch failed: ${response.status}`);
+    }
+
+    return response.json();
+  };
 
   useEffect(() => {
     // Load user from localStorage after register/checkout
@@ -71,16 +88,13 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoadingSubscription(true);
       console.log("[UserContext] Fetching subscription for doctor...");
       
-      fetch("/api/auth/subscription", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      refreshSubscription()
         .then((res) => {
-          if (!res.ok) {
-            throw new Error(`Subscription fetch failed: ${res.status}`);
-          }
-          return res.json();
+          if (!res) return null;
+          return res;
         })
         .then((data) => {
+          if (!data) return;
           console.log("[UserContext] Subscription data received:", {
             hasActive: data.hasActiveSubscription,
             planName: data.subscription?.plan_name,
@@ -109,6 +123,99 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoadingSubscription(false);
     }
   }, []);
+
+  // Secure fallback: periodically revalidate subscription state for active doctors
+  useEffect(() => {
+    if (!user || user.role !== "doctor") return;
+
+    let cancelled = false;
+    const shouldPoll = !subscription || hasPendingPayment;
+
+    if (!shouldPoll) return;
+
+    const interval = window.setInterval(() => {
+      if (cancelled) return;
+      refreshSubscription()
+        .then((data) => {
+          if (!data) return;
+          if (data.hasActiveSubscription && data.subscription) {
+            setSubscription(data.subscription);
+            setHasPendingPayment(false);
+           // router.replace("/dashboard");
+            window.location.href = "/dashboard";
+          } else {
+            setSubscription(null);
+            setHasPendingPayment(data.hasPendingPayment || false);
+          }
+        })
+        .catch((error) => {
+          console.error("[UserContext] Poll subscription failed:", error);
+        });
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [hasPendingPayment, router, subscription, user]);
+
+  // Listen for cross-tab payment events (approved/rejected) and refresh subscription
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("payments");
+      const handler = (ev: MessageEvent) => {
+        try {
+          const msg = ev.data as { type?: string; userId?: number } | undefined;
+          if (!msg || !msg.type) return;
+
+          if (msg.type === "payment-approved" || msg.type === "payment-rejected") {
+            const stored = localStorage.getItem("user");
+            if (!stored) return;
+            const parsed = JSON.parse(stored);
+            if (!parsed || !parsed.id) return;
+
+            // Only refresh subscription for the affected user
+            if (String(parsed.id) === String(msg.userId)) {
+              setIsLoadingSubscription(true);
+              refreshSubscription()
+                .then((data) => {
+                  if (!data) return;
+                  if (data.hasActiveSubscription && data.subscription) {
+                    setSubscription(data.subscription);
+                    setHasPendingPayment(false);
+                   // router.replace("/dashboard");
+                    window.location.href = "/dashboard";
+
+                  } else {
+                    setSubscription(null);
+                    setHasPendingPayment(data.hasPendingPayment || false);
+                  }
+                })
+                .catch((err) => {
+                  console.error("[UserContext] Broadcast subscription refresh failed:", err);
+                })
+                .finally(() => setIsLoadingSubscription(false));
+            }
+          }
+        } catch (err) {
+          console.error("[UserContext] Broadcast handler error:", err);
+        }
+      };
+
+      bc.addEventListener("message", handler);
+    } catch (err) {
+      console.warn("BroadcastChannel unavailable:", err);
+    }
+
+    return () => {
+      try {
+        if (bc) bc.close();
+      } catch {}
+    };
+  }, [router, setSubscription]);
 
   return (
     <UserContext.Provider value={{ user, subscription, isLoadingSubscription, hasPendingPayment, setUser, setSubscription }}>
