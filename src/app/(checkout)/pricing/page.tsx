@@ -19,6 +19,13 @@ interface Plan {
   is_active: boolean;
 }
 
+interface SubscriptionSummary {
+  plan_id: number;
+  plan_name: string;
+  billing_cycle: "monthly" | "yearly";
+  status: string;
+}
+
 // Animation variants
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -49,6 +56,7 @@ export default function PricingPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
+  const [currentSubscription, setCurrentSubscription] = useState<SubscriptionSummary | null>(null);
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
   const router = useRouter();
 
@@ -74,26 +82,62 @@ export default function PricingPage() {
       router.push("/login");
       return;
     }
-    const fetchPlans = async () => {
+    const fetchPlansAndSubscription = async () => {
       try {
-        const response = await fetch("/api/plans", {
-          headers: {
-            Authorization: `Bearer ${storedToken}`,
-          },
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setPlans(data.plans);
-          // Set the default selected plan to the first non-free plan
-          const nonFreePlan = data.plans.find((plan: Plan) => plan.name !== "Free");
-          if (nonFreePlan) {
-            setSelectedPlan(nonFreePlan.id);
-          }
-        } else if (response.status === 401) {
+        const [plansResponse, subscriptionResponse] = await Promise.all([
+          fetch("/api/plans", {
+            headers: {
+              Authorization: `Bearer ${storedToken}`,
+            },
+          }),
+          fetch("/api/auth/subscription", {
+            headers: {
+              Authorization: `Bearer ${storedToken}`,
+            },
+          }),
+        ]);
+
+        if (plansResponse.status === 401 || subscriptionResponse.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           toast.error("Session expired. Please login again.");
           router.push("/login");
+          return;
+        }
+
+        const plansData = await plansResponse.json();
+        if (!plansResponse.ok) {
+          throw new Error("Failed to fetch plans");
+        }
+
+        setPlans(plansData.plans);
+
+        const subscriptionData = subscriptionResponse.ok
+          ? await subscriptionResponse.json()
+          : null;
+
+        const activeSubscription =
+          subscriptionData?.hasActiveSubscription && subscriptionData.subscription
+            ? {
+                plan_id: Number(subscriptionData.subscription.plan_id),
+                plan_name: subscriptionData.subscription.plan_name,
+                billing_cycle: subscriptionData.subscription.billing_cycle,
+                status: subscriptionData.subscription.status,
+              }
+            : null;
+
+        setCurrentSubscription(activeSubscription);
+
+        const currentPlanId = activeSubscription ? String(activeSubscription.plan_id) : null;
+        const selectablePlan =
+          plansData.plans.find((plan: Plan) => {
+            if (currentPlanId && String(plan.id) === currentPlanId) return false;
+            if (activeSubscription && plan.name === "Free") return false;
+            return plan.name !== "Free";
+          }) || plansData.plans.find((plan: Plan) => plan.name !== "Free");
+
+        if (selectablePlan) {
+          setSelectedPlan(selectablePlan.id);
         }
       } catch (error) {
         console.error("Failed to fetch plans:", error);
@@ -101,10 +145,16 @@ export default function PricingPage() {
         setIsLoading(false);
       }
     };
-    fetchPlans();
+    fetchPlansAndSubscription();
   }, [router]);
 
   const handlePlanSelect = (planId: string) => {
+    const currentPlanId = currentSubscription ? String(currentSubscription.plan_id) : null;
+    if (currentPlanId && currentPlanId === planId) {
+      toast.error("You are already on this plan");
+      return;
+    }
+
     setSelectedPlan(planId);
   };
 
@@ -116,7 +166,17 @@ export default function PricingPage() {
     }
 
     const selectedPlan = plans.find((plan) => plan.id === planId);
+    const currentPlanId = currentSubscription ? String(currentSubscription.plan_id) : null;
+    if (currentPlanId && currentPlanId === planId) {
+      toast.error("You are already on this plan");
+      return;
+    }
+
     if (selectedPlan?.name === "Free") {
+      if (currentSubscription && currentSubscription.plan_name !== "Free") {
+        toast.error("Free plan is not available while you have an active paid subscription.");
+        return;
+      }
       router.push(`/checkout?plan=${planId}&cycle=${billingCycle}`);
       return;
     }
@@ -221,20 +281,14 @@ export default function PricingPage() {
             const isSelected = selectedPlan === plan.id;
             const isHighlighted = plan.name === "Professional" && isSelected;
             const isFree = plan.name === "Free";
-            const isDisabled = isFree && billingCycle === "yearly";
-            // Free plan only has monthly option
-            const price =
-              (isFree || billingCycle === "monthly")
-                ? plan.price_monthly
-                : plan.price_yearly;
+            const isCurrentPlan = currentSubscription ? String(currentSubscription.plan_id) === plan.id : false;
+            const isLockedFreeDowngrade = isFree && !!currentSubscription && currentSubscription.plan_name !== "Free";
+            const isDisabled = (isFree && billingCycle === "yearly") || isCurrentPlan || isLockedFreeDowngrade;
+            const price = (isFree || billingCycle === "monthly") ? plan.price_monthly : plan.price_yearly;
             const period = (isFree || billingCycle === "monthly") ? "month" : "year";
 
             return (
-              <motion.div
-                key={plan.id}
-                variants={itemVariants}
-                className="h-full"
-              >
+              <motion.div key={plan.id} variants={itemVariants} className="h-full">
                 <Card
                   className={`h-full transition-all ${
                     isDisabled
@@ -246,81 +300,63 @@ export default function PricingPage() {
                   onClick={() => !isDisabled && handlePlanSelect(plan.id)}
                 >
                   <CardContent className="p-8">
+                    {isCurrentPlan && (
+                      <div className="inline-block bg-muted text-muted-foreground text-sm font-semibold px-3 py-1 rounded-full mb-4">
+                        Current Plan
+                      </div>
+                    )}
                     {isHighlighted && (
                       <div className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4">
                         Most Popular
                       </div>
                     )}
-                    {isSelected && !isHighlighted && (
+                    {isSelected && !isHighlighted && !isCurrentPlan && (
                       <div className="inline-block bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full mb-4">
                         Selected
                       </div>
                     )}
-                    {billingCycle === "yearly" &&
-                      !isFree &&
-                      plan.price_yearly < plan.price_monthly * 12 && (
-                        <div className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full mb-4 ml-2">
-                          Save{" "}
-                          {Math.round(
-                            (1 -
-                              plan.price_yearly / (plan.price_monthly * 12)) *
-                              100
-                          )}
-                          %
-                        </div>
-                      )}
+                    {billingCycle === "yearly" && !isFree && plan.price_yearly < plan.price_monthly * 12 && (
+                      <div className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full mb-4 ml-2">
+                        Save {Math.round((1 - plan.price_yearly / (plan.price_monthly * 12)) * 100)}%
+                      </div>
+                    )}
 
-                    <h3 className="text-2xl font-bold text-foreground mb-2">
-                      {plan.name}
-                    </h3>
+                    <h3 className="text-2xl font-bold text-foreground mb-2">{plan.name}</h3>
                     <div className="flex items-baseline mb-4">
-                      <span className="text-4xl font-bold text-foreground">
-                        ৳{price}
-                      </span>
-                      <span className="text-muted-foreground ml-1">
-                        /{period}
-                      </span>
+                      <span className="text-4xl font-bold text-foreground">৳{price}</span>
+                      <span className="text-muted-foreground ml-1">/{period}</span>
                     </div>
                     {isFree && billingCycle === "yearly" && (
                       <p className="text-sm text-amber-600 mb-2">Free plan is only available monthly</p>
                     )}
-                    <p className="text-muted-foreground mb-6">
-                      {plan.description}
-                    </p>
+                    {isLockedFreeDowngrade && (
+                      <p className="text-sm text-amber-600 mb-2">
+                        Free plan is unavailable while you have an active paid subscription.
+                      </p>
+                    )}
+                    <p className="text-muted-foreground mb-6">{plan.description}</p>
 
                     <ul className="mb-8 space-y-3">
-                      {plan.features.map(
-                        (feature: string, featureIndex: number) => (
-                          <li key={featureIndex} className="flex items-center">
-                            <svg
-                              className="h-5 w-5 text-green-500 mr-2"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span className="text-muted-foreground">
-                              {feature}
-                            </span>
-                          </li>
-                        )
-                      )}
+                      {plan.features.map((feature: string, featureIndex: number) => (
+                        <li key={featureIndex} className="flex items-center">
+                          <svg className="h-5 w-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-muted-foreground">{feature}</span>
+                        </li>
+                      ))}
                     </ul>
 
                     <Button
                       className={`w-full ${
-                        isSelected
+                        isSelected && !isCurrentPlan
                           ? "bg-primary text-primary-foreground hover:bg-primary/90"
                           : "bg-muted text-foreground hover:bg-muted/80"
                       }`}
                       onClick={() => handleChoosePlan(plan.id)}
                       disabled={isDisabled}
                     >
-                      {isDisabled ? "Not Available" : "Choose Plan"}
+                      {isCurrentPlan ? "Current Plan" : isLockedFreeDowngrade ? "Not Available" : isDisabled ? "Not Available" : "Choose Plan"}
                     </Button>
                   </CardContent>
                 </Card>

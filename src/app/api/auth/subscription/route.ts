@@ -38,13 +38,13 @@ export async function GET(request: NextRequest): Promise<NextResponse<Subscripti
       });
     }
 
-    // Get active subscription for doctors
+    // Get the freshest active subscription for doctors
     const subscriptionResult = await pool.query(
       `SELECT s.*, p.name as plan_name, p.features
        FROM subscriptions s
        JOIN plans p ON s.plan_id = p.id
        WHERE s.user_id = $1 AND s.status = 'active' AND s.current_period_end > NOW()
-       ORDER BY s.created_at DESC
+       ORDER BY s.updated_at DESC, s.created_at DESC
        LIMIT 1`,
       [user.id]
     );

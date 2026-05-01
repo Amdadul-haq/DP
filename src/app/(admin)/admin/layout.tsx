@@ -51,7 +51,9 @@ export default function AdminLayout({
 
     if (!token || !userStr) {
       toast.error("Please login first");
-      router.push("/login");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      router.replace("/login");
       return;
     }
 
@@ -62,7 +64,9 @@ export default function AdminLayout({
       // Check if user has admin role
       if (userData.role !== "admin") {
         toast.error("Unauthorized - Admin access required");
-        router.push("/login");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.replace("/login");
         return;
       }
 
@@ -73,16 +77,43 @@ export default function AdminLayout({
 
       if (!response.ok) {
         toast.error("You don't have admin access");
-        router.push("/login");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.replace("/login");
         return;
       }
 
       setIsCheckingAccess(false);
     } catch {
       toast.error("Failed to verify access");
-      router.push("/login");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      router.replace("/login");
     }
   };
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (localStorage.getItem("token") && localStorage.getItem("user")) {
+        checkAdminAccess();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        handleFocus();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (isCheckingAccess) {
     return (

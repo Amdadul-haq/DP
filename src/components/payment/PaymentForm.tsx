@@ -22,6 +22,7 @@ interface PaymentFormProps {
 
 export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormProps) {
   const router = useRouter();
+  const pendingFlowKey = `checkout:payment-pending:${plan.id}`;
   const [paymentMethods, setPaymentMethods] = useState<PaymentConfig[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [selectedConfig, setSelectedConfig] = useState<PaymentConfig | null>(null);
@@ -38,6 +39,20 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
   });
 
   const amount = billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(pendingFlowKey);
+      if (!stored) return;
+
+      const parsed = JSON.parse(stored) as { planId?: string; billingCycle?: string };
+      if (parsed?.planId === plan.id) {
+        setShowSuccess(true);
+      }
+    } catch (error) {
+      console.error("Failed to restore pending payment state:", error);
+    }
+  }, [pendingFlowKey, plan.id]);
 
   useEffect(() => {
     fetchPaymentMethods();
@@ -64,18 +79,27 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
         if (response.ok) {
           const data = await response.json();
           
-          // If subscription is now active, redirect to dashboard
-          if (data.hasActiveSubscription) {
+          // For upgrades, only treat as success when the active plan matches the selected plan.
+          const selectedPlanId = Number(plan.id);
+          const activePlanId = Number(data.subscription?.plan_id);
+          const isSelectedPlanActive =
+            data.hasActiveSubscription &&
+            Number.isFinite(selectedPlanId) &&
+            selectedPlanId === activePlanId;
+
+          if (isSelectedPlanActive) {
             setIsPolling(false);
             if (pollingIntervalRef.current) {
               clearInterval(pollingIntervalRef.current);
               pollingIntervalRef.current = null;
             }
+            localStorage.removeItem(pendingFlowKey);
             toast.success("Subscription activated!", {
               description: "Redirecting to your dashboard...",
             });
             setTimeout(() => {
-              router.push("/dashboard");
+             // router.replace("/dashboard");
+              window.location.href = "/dashboard";
             }, 1500);
           }
         }
@@ -162,6 +186,10 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
       const data = await response.json();
 
       if (response.ok) {
+        localStorage.setItem(
+          pendingFlowKey,
+          JSON.stringify({ planId: String(plan.id), billingCycle })
+        );
         setShowSuccess(true);
         toast.success("Payment request submitted successfully!");
       } else {
@@ -250,10 +278,26 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
           </Alert>
 
           <div className="flex gap-3">
-            <Button onClick={() => router.push("/pricing")} className="flex-1" variant="outline" disabled={isPolling}>
+            <Button
+              onClick={() => {
+                localStorage.removeItem(pendingFlowKey);
+                router.push("/pricing");
+              }}
+              className="flex-1"
+              variant="outline"
+              disabled={isPolling}
+            >
               Back to Pricing
             </Button>
-            <Button onClick={() => router.push("/")} variant="outline" className="flex-1" disabled={isPolling}>
+            <Button
+              onClick={() => {
+                localStorage.removeItem(pendingFlowKey);
+                router.push("/");
+              }}
+              variant="outline"
+              className="flex-1"
+              disabled={isPolling}
+            >
               Go to Home
             </Button>
           </div>
