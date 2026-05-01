@@ -20,6 +20,22 @@ interface PaymentFormProps {
   onBack: () => void;
 }
 
+interface PendingFlowState {
+  planId?: string;
+  billingCycle?: string;
+  submittedByUserId?: string;
+  authToken?: string;
+}
+
+interface SubscriptionStatusResponse {
+  hasActiveSubscription: boolean;
+  subscription?: {
+    plan_id?: string | number;
+  } | null;
+  hasPendingPayment?: boolean;
+  isAdmin?: boolean;
+}
+
 export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormProps) {
   const router = useRouter();
   const pendingFlowKey = `checkout:payment-pending:${plan.id}`;
@@ -40,17 +56,25 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
 
   const amount = billingCycle === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
 
-  useEffect(() => {
+  const readPendingFlowState = (): PendingFlowState | null => {
     try {
       const stored = localStorage.getItem(pendingFlowKey);
-      if (!stored) return;
-
-      const parsed = JSON.parse(stored) as { planId?: string; billingCycle?: string };
-      if (parsed?.planId === plan.id) {
-        setShowSuccess(true);
-      }
+      if (!stored) return null;
+      return JSON.parse(stored) as PendingFlowState;
     } catch (error) {
-      console.error("Failed to restore pending payment state:", error);
+      console.error("[PaymentForm] Failed to parse pending flow state:", error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const pendingState = readPendingFlowState();
+    if (pendingState?.planId === String(plan.id)) {
+      console.log("[PaymentForm] Restored pending payment state", {
+        planId: pendingState.planId,
+        billingCycle: pendingState.billingCycle,
+      });
+      setShowSuccess(true);
     }
   }, [pendingFlowKey, plan.id]);
 
@@ -58,69 +82,166 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
     fetchPaymentMethods();
   }, []);
 
-  // Polling effect: Check subscription status every 5 seconds after payment submission
+  // Polling effect: Check subscription status frequently after payment submission.
   useEffect(() => {
     if (!showSuccess) return;
 
-    setIsPolling(true);
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+      console.warn("[PaymentForm] No user in localStorage; stopping polling");
+      setIsPolling(false);
+      return;
+    }
 
-    const pollSubscriptionStatus = async () => {
+    let localUser: { id?: string | number; role?: string } | null = null;
+    try {
+      localUser = JSON.parse(userStr) as { id?: string | number; role?: string };
+    } catch (error) {
+      console.error("[PaymentForm] Failed to parse localStorage user:", error);
+      setIsPolling(false);
+      return;
+    }
+
+    if (localUser?.role !== "doctor") {
+      console.warn("[PaymentForm] Polling disabled because current role is not doctor", {
+        role: localUser?.role,
+      });
+      setIsPolling(false);
+      return;
+    }
+
+    setIsPolling(true);
+    const POLL_INTERVAL_MS = 5000;
+
+    const pendingState = readPendingFlowState();
+    const pendingUserId = pendingState?.submittedByUserId;
+    const localUserId = localUser?.id ? String(localUser.id) : "";
+
+    if (pendingUserId && localUserId && pendingUserId !== localUserId) {
+      console.warn("[PaymentForm] Pending flow belongs to a different user; stopping polling", {
+        pendingUserId,
+        localUserId,
+      });
+      setIsPolling(false);
+      return;
+    }
+
+    const submitToken = pendingState?.authToken?.trim();
+
+    const clearPolling = () => {
+      setIsPolling(false);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+
+    const redirectToDashboard = () => {
+      localStorage.removeItem(pendingFlowKey);
+      toast.success("Subscription activated!", {
+        description: "Redirecting to your dashboard...",
+      });
+      window.location.href = "/dashboard";
+    };
+
+    const pollSubscriptionStatus = async (trigger: string) => {
       try {
-        const token = localStorage.getItem("token");
+        const token = submitToken || localStorage.getItem("token");
         if (!token) return;
+
+        console.log("[PaymentForm] Polling subscription status", {
+          trigger,
+          selectedPlanId: String(plan.id),
+          usingStoredSubmitToken: Boolean(submitToken),
+        });
 
         const response = await fetch("/api/auth/subscription", {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          cache: "no-store",
         });
 
         if (response.ok) {
-          const data = await response.json();
-          
-          // For upgrades, only treat as success when the active plan matches the selected plan.
-          const selectedPlanId = Number(plan.id);
-          const activePlanId = Number(data.subscription?.plan_id);
-          const isSelectedPlanActive =
-            data.hasActiveSubscription &&
-            Number.isFinite(selectedPlanId) &&
-            selectedPlanId === activePlanId;
+          const data = (await response.json()) as SubscriptionStatusResponse;
+
+          if (data.isAdmin) {
+            console.warn("[PaymentForm] Subscription API returned admin context while polling checkout");
+            return;
+          }
+
+          const selectedPlanId = String(plan.id);
+          const activePlanId = data.subscription?.plan_id != null
+            ? String(data.subscription.plan_id)
+            : "";
+          const hasActiveSubscription = Boolean(data.hasActiveSubscription && data.subscription);
+          const isSelectedPlanActive = hasActiveSubscription && selectedPlanId === activePlanId;
+
+          console.log("[PaymentForm] Subscription poll result", {
+            hasActiveSubscription: data.hasActiveSubscription,
+            hasPendingPayment: data.hasPendingPayment,
+            activePlanId,
+            selectedPlanId,
+            isSelectedPlanActive,
+          });
 
           if (isSelectedPlanActive) {
-            setIsPolling(false);
-            if (pollingIntervalRef.current) {
-              clearInterval(pollingIntervalRef.current);
-              pollingIntervalRef.current = null;
-            }
-            localStorage.removeItem(pendingFlowKey);
-            toast.success("Subscription activated!", {
-              description: "Redirecting to your dashboard...",
-            });
-            setTimeout(() => {
-             // router.replace("/dashboard");
-              window.location.href = "/dashboard";
-            }, 1500);
+            clearPolling();
+            redirectToDashboard();
           }
+        } else {
+          console.warn("[PaymentForm] Subscription poll failed", {
+            trigger,
+            status: response.status,
+          });
         }
       } catch (error) {
-        console.error("Error polling subscription status:", error);
+        console.error("[PaymentForm] Error polling subscription status:", error);
       }
     };
 
-    // Start polling every 5 seconds
-    pollingIntervalRef.current = setInterval(pollSubscriptionStatus, 5000);
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("payments");
+      bc.onmessage = (ev: MessageEvent) => {
+        const msg = ev.data as { type?: string; userId?: number | string } | undefined;
+        if (!msg?.type) return;
+        if (msg.type !== "payment-approved" && msg.type !== "payment-rejected") return;
 
-    // Initial poll immediately
-    pollSubscriptionStatus();
+        const messageUserId = msg.userId != null ? String(msg.userId) : "";
+        if (localUserId && messageUserId && localUserId !== messageUserId) {
+          return;
+        }
+
+        console.log("[PaymentForm] Broadcast received, running immediate subscription check", {
+          type: msg.type,
+          messageUserId,
+          localUserId,
+        });
+        void pollSubscriptionStatus(`broadcast:${msg.type}`);
+      };
+    } catch (error) {
+      console.warn("[PaymentForm] BroadcastChannel unavailable:", error);
+    }
+
+    pollingIntervalRef.current = setInterval(() => {
+      void pollSubscriptionStatus("interval");
+    }, POLL_INTERVAL_MS);
+
+    void pollSubscriptionStatus("initial");
 
     return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
+      clearPolling();
+      if (bc) {
+        try {
+          bc.close();
+        } catch {
+          // no-op
+        }
       }
     };
-  }, [showSuccess, router]);
+  }, [pendingFlowKey, plan.id, showSuccess]);
 
   const fetchPaymentMethods = async () => {
     try {
@@ -186,9 +307,25 @@ export default function PaymentForm({ plan, billingCycle, onBack }: PaymentFormP
       const data = await response.json();
 
       if (response.ok) {
+        const userStr = localStorage.getItem("user");
+        let submittedByUserId = "";
+        if (userStr) {
+          try {
+            const parsedUser = JSON.parse(userStr) as { id?: string | number };
+            submittedByUserId = parsedUser?.id != null ? String(parsedUser.id) : "";
+          } catch (error) {
+            console.error("[PaymentForm] Failed to parse user while storing pending state:", error);
+          }
+        }
+
         localStorage.setItem(
           pendingFlowKey,
-          JSON.stringify({ planId: String(plan.id), billingCycle })
+          JSON.stringify({
+            planId: String(plan.id),
+            billingCycle,
+            submittedByUserId,
+            authToken: token || undefined,
+          } satisfies PendingFlowState)
         );
         setShowSuccess(true);
         toast.success("Payment request submitted successfully!");
