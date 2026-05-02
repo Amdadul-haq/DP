@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, FileText, TrendingUp, TrendingDown } from "lucide-react";
+import { Users, FileText, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/context/UserContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -157,42 +157,84 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-8">
       {/* Header */}
-      <div className="flex flex-col gap-4">
-        <h2 className="text-3xl font-bold text-foreground">
-          Dashboard Overview
+      <div className="flex flex-col gap-2">
+        <h2 className="text-4xl font-bold tracking-tight text-foreground">
+          Dashboard
         </h2>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {user?.role === "assistant"
-            ? `Welcome back, ${user?.firstName} ${user?.lastName}. You are logged in as an Assistant.`
-            : `Welcome back, Dr. ${user?.firstName} ${user?.lastName}. Here's what's happening with your practice today.`}
+            ? `Welcome back, ${user?.firstName} ${user?.lastName}`
+            : `Welcome back, Dr. ${user?.firstName} ${user?.lastName}`}
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      {/* Stats Cards with Enhanced Styling */}
+      <div className="grid gap-5 md:grid-cols-3">
         {statsData.map((stat, index) => {
           const Icon = stat.icon;
           const TrendIcon = stat.change.isPositive ? TrendingUp : TrendingDown;
+          
+          // Color schemes for different cards
+          const colorSchemes = [
+            {
+              bg: "bg-gradient-to-br from-blue-500/10 via-blue-400/5 to-transparent",
+              border: "border-blue-200/50 dark:border-blue-800/50",
+              accent: "text-blue-600 dark:text-blue-400",
+              iconBg: "bg-blue-100/50 dark:bg-blue-900/30",
+              trendPositive: "text-emerald-600 dark:text-emerald-400",
+              trendNegative: "text-red-600 dark:text-red-400",
+            },
+            {
+              bg: "bg-gradient-to-br from-emerald-500/10 via-emerald-400/5 to-transparent",
+              border: "border-emerald-200/50 dark:border-emerald-800/50",
+              accent: "text-emerald-600 dark:text-emerald-400",
+              iconBg: "bg-emerald-100/50 dark:bg-emerald-900/30",
+              trendPositive: "text-emerald-600 dark:text-emerald-400",
+              trendNegative: "text-red-600 dark:text-red-400",
+            },
+            {
+              bg: "bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent",
+              border: "border-amber-200/50 dark:border-amber-800/50",
+              accent: "text-amber-600 dark:text-amber-400",
+              iconBg: "bg-amber-100/50 dark:bg-amber-900/30",
+              trendPositive: "text-emerald-600 dark:text-emerald-400",
+              trendNegative: "text-red-600 dark:text-red-400",
+            },
+          ];
+
+          const scheme = colorSchemes[index];
 
           return (
-            <Card key={index} className="w-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.label}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div
-                  className={`flex items-center text-xs ${
-                    stat.change.isPositive ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  <TrendIcon className="h-3 w-3 mr-1" />
-                  <span>{stat.change.value} from last month</span>
+            <Card 
+              key={index} 
+              className={`relative w-full border ${scheme.border} overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-opacity-100 group`}
+            >
+              {/* Background gradient effect */}
+              <div className={`absolute inset-0 ${scheme.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+              
+              <CardContent className="relative p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                      {stat.label}
+                    </p>
+                    <h3 className={`text-4xl font-bold ${scheme.accent} transition-colors duration-300`}>
+                      {stat.value}
+                    </h3>
+                  </div>
+                  <div className={`${scheme.iconBg} p-4 rounded-xl backdrop-blur-sm group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className={`h-7 w-7 ${scheme.accent}`} />
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <div className={`flex items-center gap-1 ${stat.change.isPositive ? scheme.trendPositive : scheme.trendNegative}`}>
+                    <TrendIcon className="h-4 w-4" />
+                    <span>{stat.change.value}</span>
+                  </div>
+                  <span className="text-muted-foreground text-xs font-normal">from last month</span>
                 </div>
               </CardContent>
             </Card>
@@ -201,39 +243,69 @@ export default function Dashboard() {
       </div>
 
       {/* Analytics Charts */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         {/* Monthly Prescriptions Chart */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Monthly Prescriptions</CardTitle>
-            <CardDescription>
-              Prescription trends over the last 6 months
-            </CardDescription>
+        <Card className="w-full shadow-lg border-0 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent pointer-events-none" />
+          <CardHeader className="pb-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-bold">Prescription Trends</CardTitle>
+                <CardDescription className="mt-2 text-xs">
+                  Monthly activity overview
+                </CardDescription>
+              </div>
+              <div className="p-3 bg-blue-100/50 dark:bg-blue-900/30 rounded-xl backdrop-blur-sm">
+                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="h-80">
+          <CardContent className="relative">
+            <div className="h-80 -mx-2">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.analytics || []}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <BarChart 
+                  data={stats?.analytics || []}
+                  margin={{ top: 5, right: 20, left: -15, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    className="opacity-10"
+                    vertical={false}
+                  />
                   <XAxis
                     dataKey="month"
-                    fontSize={12}
+                    fontSize={11}
                     tickLine={false}
                     axisLine={false}
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
                   />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
+                      backgroundColor: "hsl(var(--card))",
                       border: "1px solid hsl(var(--border))",
-                      borderRadius: "6px",
+                      borderRadius: "10px",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
                     }}
+                    cursor={{ fill: "rgba(0,0,0,0.02)" }}
+                    formatter={(value) => [value, "Prescriptions"]}
                   />
                   <Bar
                     dataKey="prescriptions"
-                    fill="hsl(var(--primary))"
-                    radius={[4, 4, 0, 0]}
-                    className="opacity-80"
+                    fill="url(#barGradient)"
+                    radius={[12, 12, 0, 0]}
+                    animationDuration={1000}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -242,48 +314,63 @@ export default function Dashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Recent Prescriptions</CardTitle>
-            <CardDescription>Latest prescription activity</CardDescription>
+        <Card className="w-full shadow-lg border-0 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+          <CardHeader className="pb-4 relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-bold">Recent Activity</CardTitle>
+                <CardDescription className="mt-2 text-xs">
+                  Latest prescriptions
+                </CardDescription>
+              </div>
+              <div className="p-3 bg-emerald-100/50 dark:bg-emerald-900/30 rounded-xl backdrop-blur-sm">
+                <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="relative">
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
               {recentPrescriptions.map((prescription) => (
-                <div
+                <Link
                   key={prescription.prescription_number}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors group"
+                  href={`/dashboard/prescriptions/${prescription.prescription_number}/preview`}
+                  className="block"
                 >
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">
-                        {prescription.patient_name}
+                  <div className="flex items-center justify-between p-3.5 border border-transparent rounded-xl bg-gradient-to-r from-muted/30 to-muted/10 hover:border-emerald-200/50 dark:hover:border-emerald-800/50 hover:shadow-md transition-all duration-200 group">
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                          {prescription.patient_name}
+                        </p>
+                        <Badge variant="secondary" className="text-xs shrink-0 font-medium">
+                          #{prescription.patient_number}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate group-hover:text-muted-foreground transition-colors">
+                        {prescription.diagnosis}
                       </p>
-                      <Badge variant="outline" className="text-xs">
-                        #{prescription.patient_number}
-                      </Badge>
+                      <p className="text-xs text-muted-foreground/60">
+                        {formatDate(prescription.created_at)}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {prescription.diagnosis}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(prescription.created_at)}
-                    </p>
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-800/50 shrink-0 ml-3 font-medium text-xs"
+                    >
+                      Completed
+                    </Badge>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="bg-green-50 text-green-700 border-green-200 shrink-0 ml-4 group-hover:bg-green-100 transition-colors"
-                  >
-                    Completed
-                  </Badge>
-                </div>
+                </Link>
               ))}
 
               {recentPrescriptions.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No prescriptions found</p>
-                  <p className="text-sm">
+                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                  <div className="p-4 bg-muted/50 rounded-xl mb-3">
+                    <FileText className="h-8 w-8 opacity-50" />
+                  </div>
+                  <p className="font-semibold text-sm">No prescriptions yet</p>
+                  <p className="text-xs mt-1 text-muted-foreground/70">
                     Create your first prescription to get started
                   </p>
                 </div>
@@ -291,9 +378,13 @@ export default function Dashboard() {
             </div>
 
             {recentPrescriptions.length > 0 && (
-              <Button variant="outline" className="w-full mt-6" asChild>
+              <Button 
+                variant="ghost"
+                className="w-full mt-3 h-9 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-semibold text-sm" 
+                asChild
+              >
                 <Link href="/dashboard/prescriptions">
-                  View All Prescriptions
+                  View all prescriptions →
                 </Link>
               </Button>
             )}
@@ -307,53 +398,54 @@ export default function Dashboard() {
 // Skeleton Loader Component
 function DashboardSkeleton() {
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-8">
       {/* Header Skeleton */}
-      <div className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-96" />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-4 w-64" />
       </div>
 
       {/* Stats Cards Skeleton */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-3">
         {[...Array(3)].map((_, index) => (
-          <Card key={index} className="w-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-6 w-16 mb-2" />
-              <Skeleton className="h-3 w-20" />
+          <Card key={index} className="w-full border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex-1">
+                  <Skeleton className="h-3 w-24 mb-3" />
+                  <Skeleton className="h-10 w-20" />
+                </div>
+                <Skeleton className="h-12 w-12 rounded-xl" />
+              </div>
+              <Skeleton className="h-4 w-32" />
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Charts Skeleton */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="w-full">
-          <CardHeader>
+      <div className="grid gap-5 md:grid-cols-2">
+        <Card className="w-full shadow-lg border-0">
+          <CardHeader className="pb-4">
             <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-4 w-60" />
+            <Skeleton className="h-3 w-48 mt-2" />
           </CardHeader>
           <CardContent>
             <Skeleton className="h-80 w-full" />
           </CardContent>
         </Card>
 
-        <Card className="w-full">
-          <CardHeader>
+        <Card className="w-full shadow-lg border-0">
+          <CardHeader className="pb-4">
             <Skeleton className="h-6 w-40" />
-            <Skeleton className="h-4 w-60" />
+            <Skeleton className="h-3 w-48 mt-2" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[...Array(3)].map((_, index) => (
-                <Skeleton key={index} className="h-16 w-full" />
+            <div className="space-y-2">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
               ))}
             </div>
-            <Skeleton className="h-10 w-full mt-6" />
           </CardContent>
         </Card>
       </div>
