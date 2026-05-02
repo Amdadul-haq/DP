@@ -214,7 +214,8 @@ export default function Pricing() {
                 <button 
                   className="w-full py-3 px-4 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleGetStarted}
-                  disabled={isDisabled}
+                  disabled={!isSelected || isDisabled}
+                  aria-disabled={!isSelected || isDisabled}
                 >
                   {isDisabled ? "Not Available" : "Get Started"}
                 </button>
