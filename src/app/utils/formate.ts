@@ -318,43 +318,41 @@ export function generatePrescriptionHTML(
           }
           .content-area {
             flex: 1;
-            overflow: visible;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
           }
           .footer-area {
             flex-shrink: 0;
           }
-        .main-content {
-  flex: 1;
-  position: relative;
-}
-
-.signature-area {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-top: 10px;
-  padding: 0 10px;
-}
-
-.divider-full {
-  position: absolute;
-  top: 0;
-  bottom: -80px;
-  left: 40%;
-  border-left: 2px solid #000;
-}
-
-.dummy-block {
-  visibility: hidden;
-}
+          .main-content {
+            flex: 1;
+            position: relative;
+          }
+          .signature-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 10px;
+            padding: 0 10px;
+          }
+          .divider-full {
+            position: absolute;
+            top: 195px;
+            bottom: 152px;
+            left: 40%;
+            border-left: 2px solid #000;
+           // height: calc(100% + 2px); /* Extend to footer top border */
+          }
+          .dummy-block {
+            visibility: hidden;
+           }
 
         </style>
       </head>
       <body>
         <div class="prescription-container bg-white p-4 rounded-lg shadow-lg print:shadow-none print:border-0 flex flex-col justify-between">
-       
+        <div class="divider-full"></div> <!-- এখানেই রাখো -->
           <div class="content-area">
         
             <!-- Doctor Info (Static) -->
@@ -405,8 +403,6 @@ export function generatePrescriptionHTML(
 
             <!-- Main Content Area -->
             <div class="main-content">
-              <div class="divider-full"></div>
-
               <div class="grid grid-cols-5 gap-4 py-4">
                 <!-- Left Column -->
                 <div class="col-span-2 space-y-3">
