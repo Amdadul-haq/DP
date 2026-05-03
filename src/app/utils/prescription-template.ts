@@ -338,7 +338,7 @@ export function generatePrescriptionHTML(
           }
           .divider-full {
             position: absolute;
-            top: 210px;
+            top: 195px;
             bottom: 152px;
             left: 40%;
             border-left: 2px solid #000;
