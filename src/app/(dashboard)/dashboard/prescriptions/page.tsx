@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -27,10 +28,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Eye, Download, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { PrescriptionTableRow } from "@/components/PrescriptionTableRow";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { usePrescriptionPDF } from "@/hooks/usePrescriptionPDF";
 
 interface Medicine {
   name: string;
@@ -135,6 +151,123 @@ export default function Prescriptions() {
     }
   };
 
+  const PrescriptionRow = ({
+    prescription,
+  }: {
+    prescription: Prescription;
+  }) => {
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const { downloadPDF, printPDF, downloading, printing } = usePrescriptionPDF(
+      prescription.prescription_number
+    );
+
+    const formatDate = (dateString: string) => {
+      return new Date(dateString).toLocaleDateString();
+    };
+
+    const handleConfirmDelete = async () => {
+      await handleDelete(prescription.prescription_number);
+      setDeleteDialogOpen(false);
+    };
+
+    return (
+      <>
+        <TableRow key={prescription.prescription_number}>
+          <TableCell className="text-muted-foreground">
+            {formatDate(prescription.created_at)}
+          </TableCell>
+          <TableCell className="font-medium">
+            {prescription.patient_number}
+          </TableCell>
+          <TableCell className="font-medium">
+            {prescription.patient_name}
+          </TableCell>
+          <TableCell>{prescription.diagnosis}</TableCell>
+          <TableCell className="text-right">
+            <div className="flex gap-2 justify-end">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link
+                      href={`/dashboard/prescriptions/${prescription.prescription_number}/preview`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>View Prescription</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => printPDF()}
+                    disabled={printing}
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Print Prescription</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => downloadPDF()}
+                    disabled={downloading}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Download PDF</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete Prescription</TooltipContent>
+              </Tooltip>
+            </div>
+          </TableCell>
+        </TableRow>
+
+        <AlertDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete
+                prescription #{prescription.prescription_number} for
+                {" "}{prescription.patient_name}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  };
+
   return (
     <div>
       <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
@@ -202,10 +335,9 @@ export default function Prescriptions() {
                 </TableHeader>
                 <TableBody>
                   {prescriptions.map((prescription) => (
-                    <PrescriptionTableRow
+                    <PrescriptionRow
                       key={prescription.prescription_number}
                       prescription={prescription}
-                      onDelete={handleDelete}
                     />
                   ))}
                 </TableBody>

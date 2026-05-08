@@ -5,9 +5,15 @@ import { Pool } from 'pg';
 // 1. Use Transaction pooler (port 6543) not Session pooler (5432)
 // 2. Keep pool size small for serverless
 // 3. Set connection timeout
+const useDbSsl = process.env.DB_SSL === 'true';
+const dbSslRejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false';
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Only enable SSL when DB_SSL is explicitly set to 'true'. This avoids
+  // attempts to use SSL against local non-SSL Postgres instances started
+  // by docker-compose. For production with managed DBs, set DB_SSL=true.
+  ssl: useDbSsl ? { rejectUnauthorized: dbSslRejectUnauthorized } : false,
   // Allow configuring pool size via env var. Keep default at 1 for
   // Supabase free/serverless environments to avoid exhausting connections.
   // Override with DB_POOL_MAX in env if you run on a non-serverless DB.

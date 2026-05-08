@@ -1,0 +1,26 @@
+version: '3.8'
+
+# Local Docker development (app only) — connects to an external Supabase DB.
+# WARNING: Do NOT commit `.env.docker` to git (it contains secrets).
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: digital-prescription-app-dev
+    restart: unless-stopped
+    # Use the docker-specific env file (local development only)
+    env_file:
+      - .env.docker
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      CHROME_BIN: /usr/bin/chromium
+    ports:
+      - "3000:3000"
+
+# The app will use DATABASE_URL in .env.docker to connect to your Supabase.
+# No local DB service here — ensures production is completely isolated.
