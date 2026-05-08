@@ -294,48 +294,6 @@ export default function EditPrescriptionPage() {
     setActiveMedicineIndex(null);
   };
 
-  const searchPatient = async () => {
-    if (!patientId.trim()) {
-      toast.error("Please enter a patient ID");
-      return;
-    }
-
-    setSearching(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`/api/patients/search?number=${patientId.trim()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPatient(data.patient);
-        setVitals(data.vitals || null);
-        setPatientId(data.patient.patient_number.toString());
-
-        if (data.vitals) {
-          setForm((prev) => ({
-            ...prev,
-            bp: data.vitals.blood_pressure || "",
-            pulse: data.vitals.pulse || "",
-            weight: data.vitals.weight || "",
-            temperature: data.vitals.temperature || "",
-          }));
-        }
-
-        toast.success("Patient found!");
-      } else {
-        toast.error("Patient not found");
-        setPatient(null);
-        setVitals(null);
-      }
-    } catch (error) {
-      toast.error("Failed to search patient");
-    } finally {
-      setSearching(false);
-    }
-  };
-
   const searchMedicines = async (searchTerm: string, index: number) => {
     if (searchTerm.length < 2) {
       clearMedicineResults();
@@ -500,34 +458,12 @@ export default function EditPrescriptionPage() {
             <div className="flex gap-4">
               <div className="flex-1">
                 <Label className="text-base">Patient ID *</Label>
-                <div className="relative">
-                  <Input
-                    value={patientId}
-                    onChange={(e) => setPatientId(e.target.value)}
-                    placeholder="Enter patient ID"
-                    className="pr-16 text-base h-12"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        searchPatient();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={searchPatient}
-                    disabled={searching}
-                  >
-                    {searching ? (
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    ) : (
-                      <Search className="h-5 w-5" />
-                    )}
-                  </Button>
-                </div>
+                <Input
+                  value={patientId}
+                  disabled
+                  placeholder="Enter patient ID"
+                  className="pr-16 text-base h-12 bg-muted cursor-not-allowed"
+                />
               </div>
             </div>
 
