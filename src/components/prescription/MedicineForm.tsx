@@ -1,6 +1,6 @@
 // src/components/prescription/MedicineForm.tsx
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,10 @@ export function MedicineForm({
   onClearResults,
 }: MedicineFormProps) {
   const [localSearch, setLocalSearch] = useState(medicine.name);
+
+  useEffect(() => {
+    setLocalSearch(medicine.name);
+  }, [medicine.name]);
 
   const handleSearchChange = (value: string) => {
     setLocalSearch(value);

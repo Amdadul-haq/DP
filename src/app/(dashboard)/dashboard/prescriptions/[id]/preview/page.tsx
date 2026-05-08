@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Download, Printer, ArrowLeft, FileText } from "lucide-react";
+import { Download, Printer, Pencil } from "lucide-react";
 import { PrescriptionHTMLTemplate } from "@/components/PrescriptionHTMLTemplate";
 import { usePrescriptionPDF } from "@/hooks/usePrescriptionPDF";
 
@@ -120,19 +120,12 @@ export default function PrescriptionPreview() {
         <Button
           variant="outline"
           onClick={() => {
-            // Store the prescription data in sessionStorage before navigating
-            if (prescription) {
-              sessionStorage.setItem(
-                "previousPrescription",
-                JSON.stringify(prescription)
-              );
-            }
-            router.push("/dashboard/prescriptions/new");
+            router.push(`/dashboard/prescriptions/${prescriptionId}/edit`);
           }}
           className="flex items-center gap-2"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Prescriptions
+          <Pencil className="h-4 w-4" />
+          Edit
         </Button>
 
         <Button
