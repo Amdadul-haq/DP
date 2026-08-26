@@ -1,26 +1,35 @@
-version: '3.8'
-
-# Local Docker development (app only) — connects to an external Supabase DB.
-# WARNING: Do NOT commit `.env.docker` to git (it contains secrets).
-
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: digital-prescription-app-dev
+  postgres:
+    image: postgres:17-alpine
+    container_name: digital-prescription-postgres
     restart: unless-stopped
-    # Use the docker-specific env file (local development only)
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: milon
+      POSTGRES_DB: digital_prescription
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .                    # ← Build using local Dockerfile
+    # image: amdadulhaq/digital-prescription-app:latest   # use image instead of build if you want to use the prebuilt image from Docker Hub
+    container_name: digital-prescription-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     env_file:
       - .env.docker
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      HOSTNAME: 0.0.0.0
-      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
-      CHROME_BIN: /usr/bin/chromium
     ports:
-      - "3000:3000"
+      - "3028:3000"
 
-# The app will use DATABASE_URL in .env.docker to connect to your Supabase.
-# No local DB service here — ensures production is completely isolated.
+volumes:
+  postgres_data:
+    name: digital-prescription-postgres-data
